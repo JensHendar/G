@@ -1,10 +1,6 @@
-/* Layout: a two-pane shop counter. The living world on the left, the hiring ledger on the right; stacks on phones.
-   Each theme repaints the tokens below from themes.js, so a theme is a complete single look (no light/dark split). */
+/* Layout: a two-pane shop counter. The living realm on the left, the hiring ledger on the right; stacks on phones.
+   One deliberate parchment look in every viewer theme, so there is no dark variant. */
 :root {
-  --sky1: #7fb6d9;
-  --sky2: #d8ecd0;
-  --ground: #5d8a3c;
-  --ground2: #46702b;
   --panel: #f3ead6;
   --panel2: #e6d8b8;
   --ink: #3b2a17;
@@ -12,6 +8,7 @@
   --accent: #a8441c;
   --accentInk: #fff6e8;
   --good: #3d7a2a;
+  --bad: #a3261c;
   --font-display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --radius: 14px;
@@ -90,7 +87,7 @@ button { font: inherit; color: inherit; }
   border-radius: var(--radius);
   overflow: hidden;
   min-height: 0;
-  background: var(--sky2);
+  background: #d8ecd0;
 }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; touch-action: manipulation; }
 .stage canvas:focus-visible { outline: none; box-shadow: inset 0 0 0 4px var(--accent); }
@@ -132,15 +129,6 @@ button { font: inherit; color: inherit; }
   font-size: 0.8rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-.hint {
-  position: absolute;
-  bottom: 8px; left: 0; right: 0;
-  text-align: center;
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.85);
-  pointer-events: none;
-  z-index: 1;
 }
 
 /* Shop */
@@ -303,43 +291,11 @@ button { font: inherit; color: inherit; }
 }
 .ach.got { opacity: 1; background: var(--panel); border: 2px solid var(--accent); }
 
-/* Theme picker */
-.picker .sheet { width: min(1000px, 100%); }
-.picker header { margin-bottom: 14px; }
-.picker header h2 { font-size: clamp(1.8rem, 5vw, 2.6rem); }
-.picker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
-.theme-card {
-  display: flex; flex-direction: column; gap: 6px;
-  text-align: left;
-  padding: 0 0 14px;
-  border: 3px solid var(--ink);
-  border-radius: 14px;
-  background: var(--panel2);
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 4px 0 var(--ink);
-  transition: transform 0.12s;
-}
-.theme-card:hover { transform: translateY(-3px); }
-.theme-card > span:not(.tc-scene) { padding-inline: 14px; }
-.tc-scene {
-  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-  height: 120px;
-  background: linear-gradient(var(--c-sky1), var(--c-sky2) 70%, var(--c-ground) 70%);
-  padding-bottom: 6px;
-}
-.tc-big { font-size: 3rem; line-height: 1; margin-bottom: 8px; }
-.tc-row { font-size: 1.2rem; letter-spacing: 2px; }
-.tc-name { font: 400 1.3rem/1.1 var(--font-display); margin-top: 6px; }
-.tc-tag { font-size: 0.88rem; }
-.tc-jobs { font-size: 0.74rem; color: var(--muted); }
-.tc-save { font-size: 0.8rem; font-weight: 700; color: var(--accent); }
-
 @media (max-width: 860px) {
   html, body { height: auto; }
   .app { height: auto; }
   .main { grid-template-columns: minmax(0, 1fr); }
-  .stage { height: 58vh; min-height: 340px; }
+  .stage { height: 66vh; min-height: 420px; }
   .shop { overflow: visible; padding-right: 0; }
   .bar h1 { font-size: 1.3rem; }
 }
@@ -349,5 +305,83 @@ button { font: inherit; color: inherit; }
 }
 
 @media (min-width: 861px) {
-  .toasts { left: auto; right: 16px; transform: none; top: calc(64px + env(safe-area-inset-top, 0px)); bottom: auto; width: 340px; }
+  .toasts { left: auto; right: 16px; transform: none; width: 340px; }
 }
+
+/* Kingdom additions */
+.bar-actions { display: flex; gap: 8px; }
+.btn.icon { padding: 6px 10px; }
+.season {
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: var(--panel2);
+  border: 2px solid var(--muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.season-blurb {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel2);
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+.count { font: 700 0.75rem/1 var(--font-body); color: var(--muted); letter-spacing: 0; text-transform: none; }
+.upgrades { max-height: 128px; overflow-y: auto; padding: 2px 6px 8px 2px; }
+.prof-meta.penalty { color: var(--bad); }
+
+.rank { margin: 6px auto 0; width: min(320px, 100%); }
+.rank-bar { height: 8px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
+.rank-fill { height: 100%; width: 0; background: #ffd65a; border-radius: inherit; transition: width 0.3s; }
+.rank-label { margin-top: 3px; font-size: 0.72rem; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+
+.chronicle {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 10px;
+  z-index: 1;
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: rgba(243, 234, 214, 0.92);
+  color: var(--ink);
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+.chronicle-label {
+  font: 400 0.75rem/1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex: none;
+}
+#chronicle-text { min-width: 0; font-style: italic; }
+#chronicle-text.show { animation: rise 0.4s ease-out; }
+
+.field { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 0.85rem; margin-bottom: 12px; }
+.field input {
+  font: 400 1.1rem/1.2 var(--font-display);
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--panel2);
+  color: var(--ink);
+  max-width: 320px;
+}
+.small { font-size: 0.8rem; }
+.perk-grid { display: grid; gap: 8px; }
+.perk {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--panel2);
+}
+.perk.owned { outline: 2px solid var(--good); }
+.perk-icon { font-size: 1.7rem; text-align: center; }
+.perk-body { display: flex; flex-direction: column; font-size: 0.85rem; min-width: 0; }
+.perk .btn { white-space: nowrap; }
