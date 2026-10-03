@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Profession Clicker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--BODY-->
+<div class="app">
+  <header class="bar">
+    <h1><small>Profession Clicker</small><span id="theme-name">Medieval Kingdom</span></h1>
+    <button class="btn" id="open-legacy">🌟 Legacy</button>
+    <button class="btn" id="open-picker">🎨 Themes</button>
+  </header>
+
+  <main class="main">
+    <section class="stage" aria-label="Your world">
+      <div class="purse">
+        <div class="amount"><span id="money">0</span> <span id="money-name">gold</span></div>
+        <div class="rate" id="cps">0 per second</div>
+        <div class="buffs" id="buffs"></div>
+      </div>
+      <canvas id="world" tabindex="0" role="button" aria-label="Click to earn"></canvas>
+      <div class="hint" id="clicker-hint"></div>
+    </section>
+
+    <section class="shop" aria-label="Shop">
+      <h2>Upgrades</h2>
+      <div class="upgrades" id="upgrades"></div>
+      <div class="upgrade-info" id="upgrade-info"></div>
+      <h2>
+        Hire
+        <span class="amounts" role="group" aria-label="Buy amount">
+          <button data-amt="1" aria-pressed="true">×1</button>
+          <button data-amt="10" aria-pressed="false">×10</button>
+          <button data-amt="100" aria-pressed="false">×100</button>
+          <button data-amt="max" aria-pressed="false">Max</button>
+        </span>
+      </h2>
+      <div class="professions" id="professions"></div>
+    </section>
+  </main>
+</div>
+
+<div class="overlay" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Legacy and stats">
+    <button class="close" id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="overlay picker" id="picker" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+    <button class="close" id="picker-close" aria-label="Close" hidden>✕</button>
+    <header>
+      <h2 id="picker-title">Pick your world</h2>
+      <p class="muted">Each world has 12 professions to hire, upgrades, lucky events and a prestige reset. Every world keeps its own save, so you can switch whenever you like.</p>
+    </header>
+    <div class="picker-grid" id="picker-grid"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<!--/BODY-->
+<script src="themes.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
