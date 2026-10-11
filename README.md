@@ -28,7 +28,3 @@ Plain HTML, CSS and JavaScript with no build step. Open `index.html` in a browse
 - Name your realm, sound effects with a mute toggle, offline earnings (50%, up to 8 hours), autosave to `localStorage`.
 
 Saves from the earlier multi-theme version's Medieval Kingdom are migrated automatically.
-
----
-
-See [`shop/`](shop/) for **Kassa**, a minimal headless shop with Klarna checkout (a separate project).
