@@ -72,9 +72,9 @@ end
 ns.On("ADDON_LOADED", function(name)
 	if name ~= ADDON then return end
 	SoulboundChronicleDB = defaults(SoulboundChronicleDB or {}, {
-		lang = "en",
 		tooltip = true,
 		autonames = true,
+		rares = true,
 		others = true,
 	})
 	SoulboundChronicleCharDB = defaults(SoulboundChronicleCharDB or {}, {
@@ -200,9 +200,8 @@ ns.On("PLAYER_LEVEL_UP", function(level) ns.Fire("LEVEL", level) end)
 
 SLASH_SOULBOUNDCHRONICLE1 = "/chronicle"
 SLASH_SOULBOUNDCHRONICLE2 = "/sbc"
-SLASH_SOULBOUNDCHRONICLE3 = "/kronika"
 SlashCmdList.SOULBOUNDCHRONICLE = function(input)
-	local cmd, arg = strtrim(input or ""):lower():match("^(%S*)%s*(.-)$")
+	local cmd = strtrim(input or ""):lower():match("^(%S*)")
 	local L = ns.L()
 	if cmd == "" then
 		ns.UI.Toggle("chronicle")
@@ -210,10 +209,6 @@ SlashCmdList.SOULBOUNDCHRONICLE = function(input)
 		ns.UI.Show("items")
 	elseif cmd == "export" then
 		ns.UI.Export()
-	elseif cmd == "lang" and ns.Locales[arg] then
-		ns.db.lang = arg
-		ns.Print(ns.L().ui.langSet)
-		ns.UI.Refresh()
 	elseif cmd == "tooltip" then
 		ns.db.tooltip = not ns.db.tooltip
 		ns.Print(ns.db.tooltip and L.ui.tooltipOn or L.ui.tooltipOff)
@@ -228,6 +223,10 @@ SlashCmdList.SOULBOUNDCHRONICLE = function(input)
 	elseif cmd == "autonames" then
 		ns.db.autonames = not ns.db.autonames
 		ns.Print(ns.db.autonames and L.ui.autonamesOn or L.ui.autonamesOff)
+		ns.Fire("NAMES_CHANGED")
+	elseif cmd == "rares" then
+		ns.db.rares = not ns.db.rares
+		ns.Print(ns.db.rares and L.ui.raresOn or L.ui.raresOff)
 		ns.Fire("NAMES_CHANGED")
 	elseif cmd == "others" then
 		ns.db.others = not ns.db.others

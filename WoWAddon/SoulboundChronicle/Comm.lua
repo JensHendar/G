@@ -13,7 +13,7 @@ ns.Comm = C
 local PREFIX = "SBChronicle"
 local SEND_INTERVAL = 0.25
 local MAX_BROADCAST = 40
-local MAX_REMOTE_NAME = 50
+local MAX_REMOTE_NAME = 80
 
 local queue = {}
 local sending = false
@@ -59,7 +59,7 @@ function C.Lookup(key, owner)
 	end
 	local name = ns.db.others and remote[owner] and remote[owner][key]
 	if name then
-		return name, ns.Stories.Format(ns.L().names.why.remote, { owner = owner })
+		return name, { ns.Stories.Format(ns.L().names.why.remote, { owner = owner }) }
 	end
 end
 

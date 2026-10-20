@@ -1,7 +1,6 @@
 local _, ns = ...
 
--- Turns stored facts into text. Nothing here is saved, so switching
--- language rewrites every story.
+-- Turns stored facts into text.
 local S = {}
 ns.Stories = S
 
@@ -60,11 +59,11 @@ function S.ItemLines(rec, link)
 	local L = ns.L()
 	local lines = {}
 
-	local name, why = ns.Names.Get(rec, link)
+	local name, reasons = ns.Names.Get(rec, link)
 	if name then
 		local original = link and link:match("|h%[(.-)%]|h") or ns.GetItemInfo(rec.id)
 		if original then table.insert(lines, fmt(L.names.originally, { name = original })) end
-		if why then table.insert(lines, why) end
+		for _, reason in ipairs(reasons or {}) do table.insert(lines, reason) end
 	end
 
 	table.insert(lines, S.Origin(rec))

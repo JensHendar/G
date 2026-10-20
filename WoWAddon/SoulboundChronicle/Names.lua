@@ -1,12 +1,12 @@
 local _, ns = ...
 
--- Gives gray, white and green items better names. Names are generated
--- from a stored seed (so they stay put), earned through deeds, or chosen
--- by the player.
+-- Gives items better names. Names are generated from a stored seed (so
+-- they stay put), earned through deeds, or chosen by the player.
 local N = {}
 ns.Names = N
 
-local MAX_QUALITY = 2 -- gray, white, green
+local MAX_QUALITY = 4    -- up to epic
+local RARE_QUALITY = 3   -- blue and up can be switched off
 local MAX_LENGTH = 40
 local SLAYER_KILLS = 100
 local FAITHFUL_LEVELS = 10
@@ -65,12 +65,6 @@ local function theme(link)
 	return best
 end
 
--- Swedish genitive: "Hogger" -> "Hoggers", "Barnabus" stays "Barnabus".
-local function genitive(name)
-	if name:find("[sxzSXZ]$") then return name end
-	return name .. "s"
-end
-
 -- Cuts a string to at most max characters without splitting a UTF-8
 -- character in half.
 local function truncate(s, max)
@@ -95,16 +89,20 @@ end
 -- Words every name template can use.
 local function words(rec, L)
 	local S = ns.Stories
+	local names = L.names
 	local seed = rec.seed or 0
-	local kind = itemKind(rec.id)
-	local noun = S.Pick(L.names.nouns[kind] or L.names.nouns.generic, seed, 3)
-	local person = S.Pick(L.names.persons, seed, 17)
+	local kind, isWeapon = itemKind(rec.id)
+	local start = S.Pick(names.compoundStart, seed, 23)
+	local endings = names.compoundEnd[isWeapon and "weapon" or "armor"]
+	local ending = S.Pick(endings, seed, 19)
+	-- Avoid doubled letters at the seam, like "Thunderreaver".
+	if start:sub(-1):lower() == ending:sub(1, 1) then ending = S.Pick(endings, seed, 20) end
 	return {
-		noun = type(noun) == "table" and noun[1] or noun,
-		nounDef = type(noun) == "table" and noun[2] or noun,
-		person = person,
-		personGen = genitive(person),
+		noun = S.Pick(names.nouns[kind] or names.nouns.generic, seed, 3),
+		person = S.Pick(names.persons, seed, 17),
 		zone = rec.z ~= "" and rec.z or "Azeroth",
+		compound = start .. ending,
+		epithet = S.Pick(names.epithets, seed, 29),
 	}
 end
 
@@ -112,45 +110,69 @@ end
 -- Names
 ---------------------------------------------------------------------------
 
--- The name an item has earned, if any, with the reason and a key that
--- changes only when a new name is earned.
+-- The creature type a weapon has slain at least SLAYER_KILLS of (the most
+-- slain one if several), and how many.
+local function slayerType(rec)
+	local best, count
+	for ctype, n in pairs(rec.slain or {}) do
+		if n >= SLAYER_KILLS and (not count or n > count or (n == count and ctype < best)) then
+			best, count = ctype, n
+		end
+	end
+	return best, count
+end
+
+-- The name an item has earned through its deeds, if any. Deeds stack:
+-- [Cursed] [Old Faithful] [Beastslayer's] Sword[, Bane of Mother Fang].
+-- Returns the name, the reasons, and a key that changes only when the
+-- set of deeds changes.
 local function earned(rec, L)
 	local S = ns.Stories
-	local why = L.names.why
-	local seed = rec.seed or 0
-
-	if rec.bane then
-		local vars = words(rec, L)
-		vars.name, vars.nameGen = rec.bane.n, genitive(rec.bane.n)
-		return S.Format(S.Pick(L.names.bane, seed, 2), vars),
-			S.Format(why.bane, { name = rec.bane.n }), "bane:" .. rec.bane.n
-	end
-
+	local names = L.names
+	local why = names.why
+	local reasons, keys, prefixes = {}, {}, {}
 	local _, isWeapon = itemKind(rec.id)
-	if isWeapon and rec.slain then
-		local best, count
-		for ctype, n in pairs(rec.slain) do
-			if n >= SLAYER_KILLS and (not count or n > count or (n == count and ctype < best)) then
-				best, count = ctype, n
-			end
-		end
-		if best then
-			local vars = words(rec, L)
-			vars.title = L.names.slayerTitle[best] or L.names.slayerTitle.default
-			return S.Format(L.names.slayer, vars),
-				S.Format(why.slayer, { count = count, ctype = best }), "slayer:" .. best
-		end
+	local vars = words(rec, L)
+
+	local bane = isWeapon and rec.bane and rec.bane.n
+	if bane then
+		table.insert(reasons, S.Format(why.bane, { name = bane }))
+		table.insert(keys, "bane:" .. bane)
 	end
 
-	if (rec.levels or 0) >= FAITHFUL_LEVELS then
-		return S.Format(S.Pick(L.names.faithful, seed, 2), words(rec, L)),
-			S.Format(why.faithful, { levels = rec.levels }), "faithful"
+	local ctype, count
+	if isWeapon then ctype, count = slayerType(rec) end
+	if ctype then
+		table.insert(reasons, S.Format(why.slayer, { count = count, ctype = ctype }))
+		table.insert(keys, "slayer:" .. ctype)
 	end
 
 	if (rec.deaths or 0) >= CURSED_DEATHS then
-		return S.Format(S.Pick(L.names.cursed, seed, 2), words(rec, L)),
-			S.Format(why.cursed, { deaths = rec.deaths }), "cursed"
+		table.insert(prefixes, names.prefix.cursed)
+		table.insert(reasons, S.Format(why.cursed, { deaths = rec.deaths }))
+		table.insert(keys, "cursed")
 	end
+	if (rec.levels or 0) >= FAITHFUL_LEVELS then
+		table.insert(prefixes, names.prefix.faithful)
+		table.insert(reasons, S.Format(why.faithful, { levels = rec.levels }))
+		table.insert(keys, "faithful")
+	end
+
+	if #keys == 0 then return end
+
+	local name
+	if not ctype and #prefixes == 0 then
+		name = S.Format(S.Pick(names.baneAlone, rec.seed, 2), { name = bane })
+	else
+		local core = vars.noun
+		if ctype then
+			core = (names.slayerTitle[ctype] or names.slayerTitle.default) .. "'s " .. core
+		end
+		table.insert(prefixes, core)
+		name = table.concat(prefixes, " ")
+		if bane then name = name .. ", " .. S.Format(names.baneSuffix, { name = bane }) end
+	end
+	return name, reasons, table.concat(keys, "|")
 end
 
 local function generated(rec, link, q, L)
@@ -158,34 +180,39 @@ local function generated(rec, link, q, L)
 	local names = L.names
 	local seed = rec.seed or 0
 	local vars = words(rec, L)
-	local templates
+	local t = q >= 2 and theme(link)
+	if t then
+		vars.themeAdj = S.Pick(names.themes[t].adj, seed, 11)
+		vars.themeNoun = S.Pick(names.themes[t].noun, seed, 13)
+	end
+	vars.junk = S.Pick(names.junkAdj, seed, 5)
+	vars.plain = S.Pick(names.plainAdj, seed, 5)
 
+	local templates
 	if q == 0 then
 		templates = names.junk
-		vars.junk = S.Pick(names.junkAdj, seed, 5)
+	elseif q == 1 then
+		templates = names.plain
+	elseif q == 2 then
+		templates = t and names.themed or names.plain
+	elseif q == 3 then
+		templates = t and names.rare or names.rarePlain
 	else
-		local t = q >= 2 and theme(link)
-		if t then
-			templates = names.themed
-			vars.themeAdj = S.Pick(names.themes[t].adj, seed, 11)
-			vars.themeNoun = S.Pick(names.themes[t].noun, seed, 13)
-		else
-			templates = names.plain
-			vars.plain = S.Pick(names.plainAdj, seed, 5)
-		end
+		templates = names.epic
 	end
 	return S.Format(S.Pick(templates, seed, 1), vars)
 end
 
--- Returns the item's name and why it has it, or nil to keep the real name.
+-- Returns the item's name and a list of reasons, or nil to keep the real
+-- name.
 function N.Get(rec, link)
 	local L = ns.L()
-	if rec.custom then return rec.custom, L.names.why.custom end
+	if rec.custom then return rec.custom, { L.names.why.custom } end
 	if not ns.db.autonames then return end
 	local q = quality(rec, link)
-	if not q or q > MAX_QUALITY then return end
-	local name, why = earned(rec, L)
-	if name then return name, why end
+	if not q or q > MAX_QUALITY or (q >= RARE_QUALITY and not ns.db.rares) then return end
+	local name, reasons = earned(rec, L)
+	if name then return name, reasons end
 	return generated(rec, link, q, L)
 end
 
@@ -195,8 +222,7 @@ function N.Check(rec, link)
 	local _, _, key = earned(rec, ns.L())
 	if key ~= rec.earnedKey then
 		if key and rec.lastName and name and name ~= rec.lastName and not rec.custom then
-			local L = ns.L()
-			ns.Print(L.ui.renamed:format(rec.lastName, name))
+			ns.Print(ns.L().ui.renamed:format(rec.lastName, name))
 			ns.Journal.Add("renamed", { old = rec.lastName, new = name })
 			ns.Fire("NAME_SET", rec)
 		end
@@ -311,8 +337,5 @@ function SoulboundChronicle_RenameHovered()
 	N.PromptRename()
 end
 
-ns.Listen("DB_READY", function()
-	local ui = ns.L().ui
-	BINDING_HEADER_SOULBOUNDCHRONICLE = ui.bindingHeader
-	BINDING_NAME_SOULBOUNDCHRONICLE_RENAME = ui.bindingRename
-end)
+BINDING_HEADER_SOULBOUNDCHRONICLE = ns.L().ui.bindingHeader
+BINDING_NAME_SOULBOUNDCHRONICLE_RENAME = ns.L().ui.bindingRename

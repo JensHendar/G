@@ -1,27 +1,31 @@
 # Soulbound Chronicle
 
-Ett addon till **World of Warcraft: Forever** som ger tråkiga föremål namn värda att minnas.
+Ett addon till **World of Warcraft: Forever** som ger tråkiga föremål namn värda att minnas. All text i spelet är på engelska.
 
 ## Namn
 
-Gråa, vita och gröna föremål (vapen och rustning) får nya namn. Blå och lila behåller sina riktiga namn, men går att döpa om för hand.
+Vapen och rustning av alla kvaliteter upp till lila (epic) får nya namn. Blå och lila namn går att stänga av med `/chronicle rares`.
 
 - **Genererade namn** bygger på föremålstyp, kvalitet och stats.
-  - Gråa blir självironiska: *Rusty Cleaver*, *Lätt Hemsökta Yxan*.
-  - Vita: *Trusty Sword*, *Blade of Westfall*, *Torvalds Grisstickare*.
-  - Gröna får namn efter sin starkaste stat: *Iron Pants*, *Björnens Benskydd*.
+  - Gråa blir självironiska: *Rusty Cleaver*, *Smelly Axe*.
+  - Vita: *Trusty Sword*, *Blade of Westfall*, *Torvald's Pigsticker*.
+  - Gröna får namn efter sin starkaste stat: *Iron Pants*, *Leggings of the Bear*.
+  - Blå: *Thunderward*, *Mighty Helm*.
+  - Lila: *Stormfang*, *Thundersong, the Whispering Dark*.
 
   Namnet slumpas en gång och behålls sedan.
 - **Förtjänade namn** ersätter det genererade när föremålet varit med om något:
-  | Bedrift | Exempel |
-  | --- | --- |
-  | Vapnet var med när du dräpte en rare, elit eller boss | *Bane of Mother Fang* / *Mother Fangs Fördärv* |
-  | Vapnet har dödat 100 av samma varelsetyp | *Beastslayer's Sword* / *Bestdräparens Svärd* |
-  | 10 levels i din utrustning | *Faithful Old Trousers* / *Trogna Gamla Byxorna* |
-  | 5 dödsfall i din utrustning | *The Cursed Boots* / *Förbannade Stövlarna* |
+  | Bedrift | Gäller | Del av namnet |
+  | --- | --- | --- |
+  | Var med när du dräpte en rare, elit eller boss | vapen | *…, Bane of Mother Fang* |
+  | 100 dödade av samma varelsetyp | vapen | *Beastslayer's …* |
+  | 10 levels i din utrustning | allt | *Old Faithful …* |
+  | 5 dödsfall i din utrustning | allt | *Cursed …* |
 
-  När ett föremål får ett nytt namn står det i chatten och i krönikan.
-- **Egna namn:** hovra över ett föremål och skriv `/chronicle name Ondskans Smörkniv`. Du kan också binda en tangent till *Rename hovered item* under Key Bindings → AddOns och trycka på den medan du hovrar. Med `/chronicle name reset` får föremålet tillbaka sitt förtjänade namn.
+  Bedrifterna kombineras, till exempel *Old Faithful Beastslayer's Sword, Bane of Mother Fang*. En svagare fiende tar inte över Bane-delen, men en starkare gör det (elit < rare < rare elit < boss < världsboss). När ett föremål får ett nytt namn står det i chatten och i krönikan.
+
+  Räknarna nollställs aldrig. Tar du av ett föremål pausas de och fortsätter när du tar på det igen. De 10 levelsen behöver alltså inte vara i följd.
+- **Egna namn** går på alla föremål: hovra över ett föremål och skriv `/chronicle name Ondskans Smörkniv`. Du kan också binda en tangent till *Rename hovered item* under Key Bindings → AddOns och trycka på den medan du hovrar. Med `/chronicle name reset` får föremålet tillbaka sitt förtjänade namn.
 
 Namnen visas i tooltipen (med originalnamnet under), i chattlänkar och på föremålssidan i addonets fönster.
 
@@ -49,22 +53,21 @@ Mappnamnet kan skilja sig åt mellan versioner. Använd samma mapp som dina andr
 
 | Kommando | Vad det gör |
 | --- | --- |
-| `/chronicle` (eller `/sbc`, `/kronika`) | Öppna eller stäng krönikan |
+| `/chronicle` (eller `/sbc`) | Öppna eller stäng krönikan |
 | `/chronicle items` | Dina föremål med namn och historia |
 | `/chronicle name <namn>` | Döp om föremålet du senast hovrade |
 | `/chronicle name` | Samma sak, fast med en ruta att skriva i |
 | `/chronicle name reset` | Ta bort ditt eget namn |
 | `/chronicle autonames` | Slå på eller av automatiska namn |
+| `/chronicle rares` | Slå på eller av automatiska namn för blå och lila föremål |
 | `/chronicle others` | Visa eller dölj andra spelares namn |
 | `/chronicle export` | Krönikan som text att kopiera |
-| `/chronicle lang sv` / `en` | Byt språk (svenska eller engelska) |
 | `/chronicle tooltip` | Slå på eller av historier i tooltips |
 
 ## Bra att veta
 
 - `## Interface: 16001` är Forever-betans värde. Det är inte bekräftat för releaseversionen. Kontrollera med `/dump select(4, GetBuildInfo())` i spelet och uppdatera `.toc` vid behov. `11509` (Classic Era) står också med så att addonet kan testas där.
 - Namnen visas bara där spelet visar föremålsnamn i text: tooltips och chatt. Väskor och karaktärsfönstret visar inga namn alls.
-- Andra spelare får namnen på ditt valda språk.
 - Allt sparas per karaktär (`SoulboundChronicleCharDB`). Föremål du redan har när du installerar får ursprunget "fanns hos dig innan krönikan började".
 
 ## Utveckling
@@ -82,6 +85,6 @@ lua5.1 WoWAddon/tests/mock_test.lua
 | `Journal.lua` | Krönikans händelser |
 | `Names.lua` | Genererade, förtjänade och egna namn |
 | `Comm.lua` | Delar namn med andra spelare och byter namn i chattlänkar |
-| `Stories.lua` | Gör om sparade fakta till text (ingen text sparas, så språkbyte skriver om allt) |
-| `Locales.lua` | Alla texter och namnord på engelska och svenska |
+| `Stories.lua` | Gör om sparade fakta till text |
+| `Locales.lua` | Alla texter och namnord |
 | `Tooltip.lua`, `UI.lua`, `Bindings.xml` | Tooltips, krönikefönster, export och tangentbindning |

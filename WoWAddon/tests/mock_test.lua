@@ -79,6 +79,7 @@ local items = {
   [101] = { "Rusty Hatchet", 0, "INVTYPE_WEAPON", 1, 2, 0 },
   [102] = { "Feral Leggings of the Bear", 2, "INVTYPE_LEGS", 1, 4, 2, { ITEM_MOD_STRENGTH_SHORT = 4, ITEM_MOD_STAMINA_SHORT = 4 } },
   [200] = { "Blue Helm", 3, "INVTYPE_HEAD", 1, 4, 4 },
+  [201] = { "Purple Axe", 4, "INVTYPE_2HWEAPON", 1, 2, 1, { ITEM_MOD_STRENGTH_SHORT = 20 } },
   [300] = { "Potion", 1, "", 20, 0, 0 },
 }
 function GetItemInfoInstant(id) local i = items[id]; return id, nil, nil, i and i[3], nil, i and i[5], i and i[6] end
@@ -160,7 +161,10 @@ check(name("b:0:1", link(100)) ~= nil, "white item gets a name: " .. tostring(na
 check(name("b:0:2", link(101)) ~= nil, "gray item gets a name: " .. tostring(name("b:0:2", link(101))))
 local green = name("b:0:3", link(102))
 check(green ~= nil, "green item gets a name: " .. tostring(green))
-check(rec("b:0:4") and name("b:0:4", link(200)) == nil, "blue item keeps its real name")
+check(name("b:0:4", link(200)) ~= nil, "blue item gets a name: " .. tostring(name("b:0:4", link(200))))
+slash("rares")
+check(name("b:0:4", link(200)) == nil, "/chronicle rares turns blue names off")
+slash("rares")
 check(rec("b:0:5") == nil, "stackable items are ignored")
 check(#sent > 0 and sent[1].channel == "GUILD", "names are shared with the guild on login")
 
@@ -172,13 +176,14 @@ check(rec("e:16").eqLevel == 10, "equipping keeps record and notes level")
 local before = name("e:16", link(100))
 for _ = 1, 100 do kill("Forest Wolf", "normal", "Beast") end
 local slayer = name("e:16", link(100))
-check(slayer == "Beastslayer's " .. slayer:match("(%S+)$"), "100 beast kills earn a slayer name: " .. slayer)
+local noun = slayer:match("(%S+)$")
+check(slayer == "Beastslayer's " .. noun, "100 beast kills earn a slayer name: " .. slayer)
 check(chat[#chat]:find(before, 1, true) and chat[#chat]:find(slayer, 1, true), "new name is announced")
 
 -- A rare outranks that.
 kill("Mother Fang", "rare", "Beast")
 local bane = name("e:16", link(100))
-check(bane:find("Mother Fang", 1, true), "slaying a rare earns a bane name: " .. bane)
+check(bane == slayer .. ", Bane of Mother Fang", "deeds combine: " .. bane)
 kill("Some Elite", "elite", "Humanoid")
 check(name("e:16", link(100)) == bane, "a lesser foe does not replace the bane name")
 
@@ -239,7 +244,17 @@ check(GameTooltipTextLeft1.text == "Kalles Bästa Yxa", "inspect tooltip shows t
 bags[0][3] = nil; equip[7] = 102; scan()
 for l = 11, 20 do level = l; fire("PLAYER_LEVEL_UP", l) end
 check(rec("e:7").bane == nil, "armor does not take bane names")
-check(name("e:7", link(102)):find("Faithful Old", 1, true) or name("e:7", link(102)) == "Old Reliable", "ten levels earn a faithful name: " .. name("e:7", link(102)))
+check(name("e:7", link(102)):find("^Old Faithful "), "ten levels earn a faithful name: " .. name("e:7", link(102)))
+check(name("e:16", link(100)) == "Old Faithful " .. bane, "all three deeds combine: " .. name("e:16", link(100)))
+
+-- Taking an item off and on again keeps its counts.
+local kills = rec("e:16").kills
+equip[16] = nil; bags[1][1] = 100; fire("PLAYER_EQUIPMENT_CHANGED"); scan()
+kill("Forest Wolf", "normal", "Beast")
+check(rec("b:1:1").kills == kills, "kills are not counted while unequipped")
+bags[1][1] = nil; equip[16] = 100; fire("PLAYER_EQUIPMENT_CHANGED"); scan()
+kill("Forest Wolf", "normal", "Beast")
+check(rec("e:16").kills == kills + 1 and rec("e:16").levels == 10, "re-equipping continues the counts")
 
 -- Autonames off keeps real names but custom ones stay.
 slash("autonames")
@@ -254,10 +269,9 @@ slash("help")
 check(true, "UI commands run")
 
 -- Show a spread of generated names in both languages.
-local function samples(lang)
-  slash("lang " .. lang)
-  print("\n--- Sample names (" .. lang .. ") ---")
-  for _, id in ipairs({ 101, 100, 102 }) do
+local function samples()
+  print("\n--- Sample names ---")
+  for _, id in ipairs({ 101, 100, 102, 200, 201 }) do
     local out = {}
     for seed = 0, 5 do
       table.insert(out, ns.Names.Get({ id = id, seed = seed * 7, z = "Westfall" }, link(id)))
@@ -266,7 +280,6 @@ local function samples(lang)
   end
   print("Earned: " .. name("e:16", link(100)) .. " | " .. name("e:7", link(102)))
 end
-samples("en")
-samples("sv")
-print("\n--- Chronicle (sv) ---")
+samples()
+print("\n--- Chronicle ---")
 for _, e in ipairs(ns.char.journal) do print(ns.Stories.Entry(e)) end

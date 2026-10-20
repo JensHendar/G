@@ -29,14 +29,13 @@ end
 -- Someone else's item: only the name they gave it.
 local function showRemote(tooltip, link, owner)
 	local key = ns.Comm.KeyFromLink(link)
-	local name, why = ns.Comm.Lookup(key, owner)
+	local name, reasons = ns.Comm.Lookup(key, owner)
 	if not name then return false end
 	setTitle(tooltip, name)
 	local original = link:match("|h%[(.-)%]|h") or ns.GetItemInfo(link)
-	addLines(tooltip, {
-		ns.Stories.Format(ns.L().names.originally, { name = original or "?" }),
-		why,
-	})
+	local lines = { ns.Stories.Format(ns.L().names.originally, { name = original or "?" }) }
+	for _, reason in ipairs(reasons or {}) do table.insert(lines, reason) end
+	addLines(tooltip, lines)
 	tooltip:Show()
 	return true
 end
