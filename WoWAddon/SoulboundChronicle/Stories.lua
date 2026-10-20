@@ -18,6 +18,7 @@ local function pick(list, seed, salt)
 	if type(list) ~= "table" then return list end
 	return list[((seed or 0) + (salt or 0)) % #list + 1]
 end
+S.Pick = pick
 
 local function place(zone, sub)
 	zone = zone ~= "" and zone or nil
@@ -30,15 +31,6 @@ S.Place = place
 local function lvl(level)
 	if not level or level <= 0 then return "" end
 	return fmt(ns.L().level, { lvl = level })
-end
-
-local function timeOfDay(hour)
-	local tod = ns.L().tod
-	if not hour then return tod.day end
-	if hour >= 5 and hour < 9 then return tod.dawn end
-	if hour >= 9 and hour < 17 then return tod.day end
-	if hour >= 17 and hour < 21 then return tod.dusk end
-	return tod.night
 end
 
 function S.Duration(seconds)
@@ -63,29 +55,16 @@ function S.Origin(rec)
 	})
 end
 
-function S.Soul(soul, seed)
-	local L = ns.L()
-	if not soul then return { L.soulUnknown } end
-	local story = fmt(pick(L.soul, seed), {
-		name = soul.name or "?",
-		lvl = lvl(soul.level),
-		tod = timeOfDay(soul.hour),
-		place = place(soul.zone, soul.sub),
-	})
-	local flavor = L.soulFlavor[soul.ctype or ""] or L.soulFlavor.default
-	return { story, pick(flavor, seed, 7) }
-end
-
 -- Lines shown in the tooltip and on the items page.
-function S.ItemLines(rec)
+function S.ItemLines(rec, link)
 	local L = ns.L()
 	local lines = {}
-	if rec.isShard then
-		for _, line in ipairs(S.Soul(rec.soul, rec.seed)) do
-			table.insert(lines, line)
-		end
-		table.insert(lines, fmt(L.when, { date = S.Date(rec.t), plvl = rec.pl }))
-		return lines
+
+	local name, why = ns.Names.Get(rec, link)
+	if name then
+		local original = link and link:match("|h%[(.-)%]|h") or ns.GetItemInfo(rec.id)
+		if original then table.insert(lines, fmt(L.names.originally, { name = original })) end
+		if why then table.insert(lines, why) end
 	end
 
 	table.insert(lines, S.Origin(rec))
@@ -125,8 +104,9 @@ function S.Entry(e)
 		cls = L.cls[e.cls or ""] or "",
 		killer = e.killer,
 		pct = e.pct,
-		spell = e.spell,
 		link = e.link,
+		old = e.old,
+		new = e.new,
 		origin = e.rec and S.Origin(e.rec) or "",
 	})
 end

@@ -1,8 +1,8 @@
 ## Interface: 16001, 11509
 ## Title: Soulbound Chronicle
-## Notes: Every item remembers where it came from. Every soul shard remembers whose soul it holds. Your adventure is written down as you play.
+## Notes: Gray, white and green items get names worth remembering, earned through your deeds or chosen by you. Every item remembers its story, and your adventure is written down as you play.
 ## Author: Jens Hendar
-## Version: 0.1.0
+## Version: 0.2.0
 ## SavedVariables: SoulboundChronicleDB
 ## SavedVariablesPerCharacter: SoulboundChronicleCharDB
 
@@ -11,5 +11,7 @@ Core.lua
 Stories.lua
 Tracker.lua
 Journal.lua
+Names.lua
+Comm.lua
 Tooltip.lua
 UI.lua

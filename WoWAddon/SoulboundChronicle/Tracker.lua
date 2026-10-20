@@ -5,7 +5,6 @@ local _, ns = ...
 local T = {}
 ns.Tracker = T
 
-local SOUL_SHARD = 6265
 local BANK_CONTAINER = BANK_CONTAINER or -1
 local NUM_BAGS = NUM_BAG_SLOTS or 4
 local NUM_BANK_BAGS = NUM_BANKBAGSLOTS or 6
@@ -15,7 +14,7 @@ local MAX_DEEDS = 3
 local bankOpen = false
 
 ---------------------------------------------------------------------------
--- What gets a memory: soul shards and gear that does not stack.
+-- What gets a memory: gear that does not stack.
 ---------------------------------------------------------------------------
 
 local IGNORED_SLOTS = {
@@ -25,7 +24,6 @@ local IGNORED_SLOTS = {
 local trackedCache = {}
 
 local function isTracked(itemID)
-	if itemID == SOUL_SHARD then return true end
 	if trackedCache[itemID] ~= nil then return trackedCache[itemID] end
 	local _, _, _, equipLoc = ns.GetItemInfoInstant(itemID)
 	local tracked = equipLoc ~= nil and not IGNORED_SLOTS[equipLoc]
@@ -148,12 +146,6 @@ end)
 -- Records
 ---------------------------------------------------------------------------
 
--- A kill that just happened and has not given up a soul yet.
-local function freshKill()
-	local kill = ns.lastKill
-	if kill and not kill.claimed and GetTime() - kill.t < 6 then return kill end
-end
-
 local function newRecord(entry)
 	local char = ns.char
 	local id = char.nextId
@@ -172,19 +164,7 @@ local function newRecord(entry)
 	local recentLogin = GetTime() - (ns.loginTime or 0) < 10
 	rec.o = currentOrigin() or { k = recentLogin and "before" or "found" }
 
-	if entry.id == SOUL_SHARD then
-		rec.isShard = true
-		local kill = freshKill()
-		if kill then
-			kill.claimed = true
-			rec.soul = {
-				name = kill.name, level = kill.level, ctype = kill.ctype,
-				zone = kill.zone, sub = kill.sub, hour = kill.hour,
-			}
-			rec.o = { k = "soul" }
-			ns.Journal.Add("soul", { name = kill.name, lvl = kill.level })
-		end
-	elseif rec.o.k ~= "before" then
+	if rec.o.k ~= "before" then
 		local _, _, quality = ns.GetItemInfo(entry.link or entry.id)
 		if quality and quality >= 3 then
 			ns.Journal.Add("item", {
@@ -220,15 +200,6 @@ local function onEquipped(rec)
 end
 
 local function onGone(entry)
-	local rec = ns.char.items[entry.rec]
-	local cast = ns.lastCast
-	if rec and rec.isShard and cast and GetTime() - cast.t < 2 then
-		-- Spent on a spell: this shard is gone for good.
-		if rec.soul then
-			ns.Journal.Add("soulused", { name = rec.soul.name, spell = cast.name })
-		end
-		return
-	end
 	entry.t = time()
 	table.insert(ns.char.limbo, entry)
 	while #ns.char.limbo > LIMBO_MAX do table.remove(ns.char.limbo, 1) end
@@ -260,6 +231,7 @@ function T.Scan()
 			local guid = itemGUID(bag, slot)
 			if prev and prev.id == id and not (prev.guid and guid and prev.guid ~= guid) then
 				prev.guid = guid or prev.guid
+				prev.link = link
 				new[key] = prev
 				return
 			end
@@ -283,11 +255,7 @@ function T.Scan()
 	end
 
 	for _, entry in ipairs(added) do
-		local match = takeMatch(removed, entry)
-		-- A shard right after a kill is a new soul, not an old one coming back.
-		if not match and not (entry.id == SOUL_SHARD and freshKill()) then
-			match = takeMatch(ns.char.limbo, entry)
-		end
+		local match = takeMatch(removed, entry) or takeMatch(ns.char.limbo, entry)
 		entry.rec = match and match.rec or newRecord(entry)
 		entry.guid = entry.guid or (match and match.guid)
 		local rec = ns.char.items[entry.rec]
@@ -344,10 +312,12 @@ function T.ForEach(fn)
 	end
 end
 
-local function forEachEquipped(fn)
+-- Calls fn(rec, entry) for every remembered item being worn.
+function T.ForEachEquipped(fn)
 	for slot = 1, 19 do
-		local rec = T.RecordAt("e:" .. slot)
-		if rec then fn(rec) end
+		local entry = ns.char.slots["e:" .. slot]
+		local rec = entry and ns.char.items[entry.rec]
+		if rec then fn(rec, entry) end
 	end
 end
 
@@ -363,22 +333,26 @@ end
 
 ns.Listen("KILL", function(kill)
 	local notable = ns.Journal.IsNotable(kill)
-	forEachEquipped(function(rec)
+	T.ForEachEquipped(function(rec)
 		rec.kills = (rec.kills or 0) + 1
+		if kill.ctype then
+			rec.slain = rec.slain or {}
+			rec.slain[kill.ctype] = (rec.slain[kill.ctype] or 0) + 1
+		end
 		if notable then addDeed(rec, kill.name) end
 	end)
 end)
 
 ns.Listen("BOSS", function(name)
-	forEachEquipped(function(rec) addDeed(rec, name) end)
+	T.ForEachEquipped(function(rec) addDeed(rec, name) end)
 end)
 
 ns.Listen("DEATH", function()
-	forEachEquipped(function(rec) rec.deaths = (rec.deaths or 0) + 1 end)
+	T.ForEachEquipped(function(rec) rec.deaths = (rec.deaths or 0) + 1 end)
 end)
 
 ns.Listen("LEVEL", function()
-	forEachEquipped(function(rec) rec.levels = (rec.levels or 0) + 1 end)
+	T.ForEachEquipped(function(rec) rec.levels = (rec.levels or 0) + 1 end)
 end)
 
 ---------------------------------------------------------------------------
@@ -398,7 +372,7 @@ end
 ns.Listen("LOGIN", function()
 	collectGarbage()
 	C_Timer.NewTicker(60, function()
-		forEachEquipped(function(rec) rec.worn = (rec.worn or 0) + 60 end)
+		T.ForEachEquipped(function(rec) rec.worn = (rec.worn or 0) + 60 end)
 	end)
 end)
 

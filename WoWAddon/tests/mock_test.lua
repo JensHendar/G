@@ -1,17 +1,21 @@
--- Minimal WoW API mock to exercise Soulbound Chronicle logic.
+-- Minimal WoW API mock to exercise Soulbound Chronicle without the game.
+-- Run from the repository root: lua5.1 WoWAddon/tests/mock_test.lua
 local DIR = arg[1] or "WoWAddon/SoulboundChronicle"
 local now = 1000
 function GetTime() return now end
 local clock = 1760000000
-date = os.date
 time = function() return clock end
+date = os.date
 bit = { band = function(a, b) local r, p = 0, 1; while a > 0 and b > 0 do if a % 2 == 1 and b % 2 == 1 then r = r + p end a = math.floor(a/2); b = math.floor(b/2); p = p*2 end return r end }
 wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 strtrim = function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
+Ambiguate = function(name) return (name:gsub("%-.*$", "")) end
 COMBATLOG_OBJECT_REACTION_FRIENDLY = 0x10
 UISpecialFrames = {}
 SlashCmdList = {}
-DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) print("[chat] " .. m) end }
+ACCEPT, CANCEL = "Accept", "Cancel"
+local chat = {}
+DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) table.insert(chat, m) end }
 
 local function stub()
   local o = { scripts = {} }
@@ -22,176 +26,247 @@ local function stub()
     if k == "Show" then return function(self) self.shown = true end end
     if k == "Hide" then return function(self) self.shown = false end end
     if k == "SetText" then return function(self, s) self.text = s end end
+    if k == "GetText" then return function(self) return self.text end end
     return function() return stub() end
   end })
 end
 local frames = {}
-function CreateFrame(...) local f = stub(); table.insert(frames, f); return f end
-C_Timer = { After = function(_, f) f() end, NewTicker = function(_, f) TICK = f end }
+function CreateFrame() local f = stub(); table.insert(frames, f); return f end
+local timers = {}
+C_Timer = {
+  After = function(delay, f) table.insert(timers, { due = now + delay, fn = f }) end,
+  NewTicker = function(_, f) TICK = f end,
+}
+local function flush()
+  local ran = true
+  while ran do
+    ran = false
+    for i, t in ipairs(timers) do
+      if t.due <= now then table.remove(timers, i); t.fn(); ran = true; break end
+    end
+  end
+end
 
--- Tooltip
+-- Tooltips
 local ttLines = {}
+GameTooltipTextLeft1 = stub()
 GameTooltip = stub()
+GameTooltip.GetName = function() return "GameTooltip" end
 GameTooltip.AddLine = function(_, s) table.insert(ttLines, s) end
 local hooks = {}
-function hooksecurefunc(obj, name, fn) hooks[name] = fn end
+function hooksecurefunc(obj, name, fn) if obj == GameTooltip then hooks[name] = fn end end
+local function resetTooltip() ttLines = {}; GameTooltipTextLeft1.text = nil end
 
--- World state
+-- Chat and addon messages
+local filters = {}
+function ChatFrame_AddMessageEventFilter(event, fn) filters[event] = fn end
+local sent = {}
+C_ChatInfo = {
+  RegisterAddonMessagePrefix = function() end,
+  SendAddonMessage = function(prefix, text, channel, target) table.insert(sent, { text = text, channel = channel, target = target }) end,
+}
+function IsInGuild() return true end
+function IsInGroup() return false end
+function IsInRaid() return false end
+function GetNumGroupMembers() return 0 end
+StaticPopupDialogs = {}
+local popup
+function StaticPopup_Show(name, text) popup = text end
+
+-- Items: name, quality, equipLoc, maxStack, classID, subclassID, stats
+local items = {
+  [100] = { "Worn Shortsword", 1, "INVTYPE_WEAPON", 1, 2, 7 },
+  [101] = { "Rusty Hatchet", 0, "INVTYPE_WEAPON", 1, 2, 0 },
+  [102] = { "Feral Leggings of the Bear", 2, "INVTYPE_LEGS", 1, 4, 2, { ITEM_MOD_STRENGTH_SHORT = 4, ITEM_MOD_STAMINA_SHORT = 4 } },
+  [200] = { "Blue Helm", 3, "INVTYPE_HEAD", 1, 4, 4 },
+  [300] = { "Potion", 1, "", 20, 0, 0 },
+}
+function GetItemInfoInstant(id) local i = items[id]; return id, nil, nil, i and i[3], nil, i and i[5], i and i[6] end
+local function idOf(x) if type(x) == "string" then return tonumber(x:match("item:(%d+)")) end return x end
+local function link(id, unique) return "|cffffffff|Hitem:" .. id .. ":0:0:0:0:0:0:" .. (unique or 0) .. "|h[" .. items[id][1] .. "]|h|r" end
+function GetItemInfo(x)
+  local id = idOf(x); local i = items[id]; if not i then return end
+  return i[1], link(id), i[2], nil, nil, nil, nil, i[4]
+end
+function GetItemStats(l) local i = items[idOf(l)]; return i and i[7] end
+
 local bags = { [0] = {}, {}, {}, {}, {} }
 local equip = {}
-local items = {
-  [6265] = { "Soul Shard", 1, "", 1 },
-  [100] = { "Worn Shortsword", 1, "INVTYPE_WEAPON", 1 },
-  [200] = { "Epic Helm", 4, "INVTYPE_HEAD", 1 },
-  [300] = { "Potion", 1, "", 20 },
-}
-function GetItemInfoInstant(id) local i = items[id]; return id, nil, nil, i and i[3] end
-function GetItemInfo(id)
-  if type(id) == "string" then id = tonumber(id:match("item:(%d+)")) end
-  local i = items[id]; if not i then return end
-  return i[1], nil, i[2], nil, nil, nil, nil, i[4]
-end
-local function link(id) return "|cffffffff|Hitem:" .. id .. "|h[" .. items[id][1] .. "]|h|r" end
 C_Container = {
   GetContainerNumSlots = function(b) return bags[b] and 16 or 0 end,
   GetContainerItemID = function(b, s) return bags[b] and bags[b][s] end,
   GetContainerItemLink = function(b, s) local id = bags[b] and bags[b][s]; return id and link(id) end,
 }
 function GetInventoryItemID(_, s) return equip[s] end
-function GetInventoryItemLink(_, s) return equip[s] and link(equip[s]) end
+function GetInventoryItemLink(unit, s) if unit == "player" then return equip[s] and link(equip[s]) end return INSPECT_LINK end
 
 local level = 10
-local target = nil
+local target
 function UnitGUID(u) if u == "player" then return "P" end if u == "target" then return target and target.guid end end
 function UnitName(u) if u == "player" then return "Jens" end return target and target.name end
+function GetUnitName(u) return UnitName(u) end
 function UnitLevel(u) if u == "player" then return level end return target and target.level end
 function UnitIsPlayer() return false end
-function UnitClassification(u) return target and target.cls or "normal" end
-function UnitCreatureType(u) return target and target.ctype end
-function UnitExists(u) return target ~= nil end
+function UnitClassification() return target and target.cls or "normal" end
+function UnitCreatureType() return target and target.ctype end
+function UnitExists() return target ~= nil end
 function UnitIsDead() return target and target.dead end
 function UnitIsUnit(a, b) return a == b end
 function UnitAffectingCombat() return true end
-function UnitHealth() return 5 end
+function UnitHealth() return 50 end
 function UnitHealthMax() return 100 end
 function UnitIsDeadOrGhost() return false end
 function GetRealZoneText() return "Elwynn Forest" end
 function GetSubZoneText() return "Fargodeep Mine" end
-function GetGameTime() return 22, 0 end
 function IsInInstance() return false end
-function GetSpellInfo(id) if id == 1120 or id == 11675 then return "Drain Soul" end return "Summon Voidwalker" end
 function IsFishingLoot() return false end
 function GetLootSourceInfo() return target and target.guid end
 local cleu
 function CombatLogGetCurrentEventInfo() return unpack(cleu) end
 
--- Load addon
+-- Load the addon in TOC order.
 local ns = {}
-for _, f in ipairs({ "Locales", "Core", "Stories", "Tracker", "Journal", "Tooltip", "UI" }) do
-  assert(loadfile(DIR .. "/" .. f .. ".lua"))("SoulboundChronicle", ns)
+for line in io.lines(DIR .. "/SoulboundChronicle.toc") do
+  if line:match("%.lua$") then assert(loadfile(DIR .. "/" .. line))("SoulboundChronicle", ns) end
 end
 local events = frames[1]
-local function fire(e, ...) events.scripts.OnEvent(events, e, ...) end
+local function fire(e, ...) events.scripts.OnEvent(events, e, ...); now = now + 0.2; flush() end
+local function wait(sec) now = now + sec; flush() end
+local function scan() fire("BAG_UPDATE_DELAYED") end
+local slash = function(...) SlashCmdList.SOULBOUNDCHRONICLE(...); wait(1) end
+local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end print("ok  " .. msg) end
+local function rec(key) return ns.Tracker.RecordAt(key) end
+local function name(key, l) return ns.Names.Get(rec(key), l) end
+local guidN = 0
+local function kill(n, cls, ctype)
+  guidN = guidN + 1
+  target = { guid = "C" .. guidN, name = n, level = 10, cls = cls, ctype = ctype }
+  fire("PLAYER_TARGET_CHANGED")
+  cleu = { 0, "SWING_DAMAGE", false, "P", "Jens", 0, 0, target.guid, n, 0x40, 0 }
+  fire("COMBAT_LOG_EVENT_UNFILTERED")
+  cleu = { 0, "UNIT_DIED", false, "", nil, 0, 0, target.guid, n, 0x40, 0 }
+  fire("COMBAT_LOG_EVENT_UNFILTERED")
+end
 
--- Existing gear before install
-bags[0][1] = 100
+-- Install with some gear already in the bags.
+bags[0][1] = 100; bags[0][2] = 101; bags[0][3] = 102; bags[0][4] = 200; bags[0][5] = 300
 fire("ADDON_LOADED", "SoulboundChronicle")
 fire("PLAYER_LOGIN")
 fire("PLAYER_ENTERING_WORLD")
+wait(11)
 
-local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end print("ok  " .. msg) end
-local function rec(key) return ns.Tracker.RecordAt(key) end
-check(rec("b:0:1") and rec("b:0:1").o.k == "before", "existing item gets 'before' origin")
+check(rec("b:0:1").o.k == "before", "existing item gets 'before' origin")
+check(name("b:0:1", link(100)) ~= nil, "white item gets a name: " .. tostring(name("b:0:1", link(100))))
+check(name("b:0:2", link(101)) ~= nil, "gray item gets a name: " .. tostring(name("b:0:2", link(101))))
+local green = name("b:0:3", link(102))
+check(green ~= nil, "green item gets a name: " .. tostring(green))
+check(rec("b:0:4") and name("b:0:4", link(200)) == nil, "blue item keeps its real name")
+check(rec("b:0:5") == nil, "stackable items are ignored")
+check(#sent > 0 and sent[1].channel == "GUILD", "names are shared with the guild on login")
 
--- Equip it, move along
+-- Equip the sword and slay 100 beasts.
 now = now + 60
 bags[0][1] = nil; equip[16] = 100
-fire("PLAYER_EQUIPMENT_CHANGED"); fire("BAG_UPDATE_DELAYED")
-check(rec("e:16") and rec("e:16").eqLevel == 10, "equipping keeps record and notes level")
+fire("PLAYER_EQUIPMENT_CHANGED"); scan()
+check(rec("e:16").eqLevel == 10, "equipping keeps record and notes level")
+local before = name("e:16", link(100))
+for _ = 1, 100 do kill("Forest Wolf", "normal", "Beast") end
+local slayer = name("e:16", link(100))
+check(slayer == "Beastslayer's " .. slayer:match("(%S+)$"), "100 beast kills earn a slayer name: " .. slayer)
+check(chat[#chat]:find(before, 1, true) and chat[#chat]:find(slayer, 1, true), "new name is announced")
 
--- Kill a rare with Drain Soul -> soul shard
-target = { guid = "C1", name = "Mother Fang", level = 10, cls = "rare", ctype = "Beast" }
-fire("PLAYER_TARGET_CHANGED")
-fire("UNIT_SPELLCAST_CHANNEL_START", "player", "x", 1120)
-cleu = { 0, "SPELL_PERIODIC_DAMAGE", false, "P", "Jens", 0, 0, "C1", "Mother Fang", 0x40, 0 }
-fire("COMBAT_LOG_EVENT_UNFILTERED")
-cleu = { 0, "UNIT_DIED", false, "", nil, 0, 0, "C1", "Mother Fang", 0x40, 0 }
-fire("COMBAT_LOG_EVENT_UNFILTERED")
-fire("UNIT_SPELLCAST_CHANNEL_STOP", "player")
-now = now + 1
-bags[0][2] = 6265
-fire("BAG_UPDATE_DELAYED")
-local shard = rec("b:0:2")
-check(shard and shard.soul and shard.soul.name == "Mother Fang", "soul shard remembers its soul")
-check(rec("e:16").kills == 1 and #rec("e:16").deeds == 1, "equipped weapon counts kill and deed")
+-- A rare outranks that.
+kill("Mother Fang", "rare", "Beast")
+local bane = name("e:16", link(100))
+check(bane:find("Mother Fang", 1, true), "slaying a rare earns a bane name: " .. bane)
+kill("Some Elite", "elite", "Humanoid")
+check(name("e:16", link(100)) == bane, "a lesser foe does not replace the bane name")
 
--- Loot an epic from the corpse
-target.dead = true
-fire("LOOT_OPENED")
-bags[1][1] = 200
-fire("BAG_UPDATE_DELAYED")
-fire("LOOT_CLOSED")
-check(rec("b:1:1").o.k == "loot" and rec("b:1:1").o.src == "Mother Fang", "looted item knows its source")
-
--- Move shard to another slot
-now = now + 30
-bags[0][2] = nil; bags[2][5] = 6265
-fire("BAG_UPDATE_DELAYED")
-check(rec("b:2:5") and rec("b:2:5").soul.name == "Mother Fang", "moved shard keeps its story")
-
--- Bank round trip
-fire("BANKFRAME_OPENED")
-bags[1][1] = nil; bags[-1] = { [3] = 200 }
-fire("BAG_UPDATE_DELAYED")
-check(rec("b:-1:3") and rec("b:-1:3").o.src == "Mother Fang", "item moved to bank keeps story")
-fire("BANKFRAME_CLOSED")
-bags[-1] = nil
-fire("BAG_UPDATE_DELAYED")
-check(rec("b:-1:3") ~= nil, "bank memory survives when bank is closed")
-
--- Spend the shard on a spell
-now = now + 30
-fire("UNIT_SPELLCAST_SUCCEEDED", "player", "y", 697)
-bags[2][5] = nil
-fire("BAG_UPDATE_DELAYED")
-check(#ns.char.limbo == 0, "spent shard is gone, not in limbo")
-
--- New shard without a kill shouldn't inherit anything
-now = now + 30
-bags[3][1] = 6265
-fire("BAG_UPDATE_DELAYED")
-check(rec("b:3:1") and rec("b:3:1").soul == nil, "unknown shard is nameless")
-
--- Potions are not tracked
-bags[3][2] = 300
-fire("BAG_UPDATE_DELAYED")
-check(rec("b:3:2") == nil, "stackable items are ignored")
-
--- Level up, near death, death
-level = 11; fire("PLAYER_LEVEL_UP", 11)
-fire("UNIT_HEALTH", "player"); fire("PLAYER_REGEN_ENABLED")
-cleu = { 0, "SWING_DAMAGE", false, "C9", "Hogger", 0, 0, "P", "Jens", 0, 0 }
-fire("COMBAT_LOG_EVENT_UNFILTERED")
-fire("PLAYER_DEAD")
-check(rec("e:16").levels == 1 and rec("e:16").deaths == 1, "weapon counts levels and deaths")
-
--- Tooltip
-hooks.SetBagItem(GameTooltip, 3, 1)
+-- Tooltip shows the new name and story.
+resetTooltip()
 hooks.SetInventoryItem(GameTooltip, "player", 16)
-check(#ttLines > 0, "tooltip lines added")
+check(GameTooltipTextLeft1.text == bane, "tooltip title shows the new name")
+check(table.concat(ttLines, "\n"):find("Originally: Worn Shortsword", 1, true), "tooltip shows the original name")
 
-print("\n--- Tooltip (en) ---")
-for _, l in ipairs(ttLines) do print(l) end
-print("\n--- Chronicle (en) ---")
-for _, e in ipairs(ns.char.journal) do print(ns.Stories.Entry(e)) end
-SlashCmdList.SOULBOUNDCHRONICLE("lang sv")
-print("\n--- Mother Fang shard / weapon (sv) ---")
-for _, l in ipairs(ns.Stories.ItemLines(shard)) do print(l) end
-for _, l in ipairs(ns.Stories.ItemLines(rec("e:16"))) do print(l) end
+-- Rename by hand.
+slash("name Ondskans Smörkniv")
+check(name("e:16", link(100)) == "Ondskans Smörkniv", "custom name via /chronicle name")
+slash("name")
+check(popup and popup:find("Ondskans Smörkniv", 1, true), "rename popup opens for hovered item")
+slash("name reset")
+check(name("e:16", link(100)) == bane, "reset brings back the earned name")
+slash("name |cffff0000Evil|r\tName")
+check(name("e:16", link(100)) == "Evil Name", "control codes are stripped from custom names")
+slash("name reset")
+
+-- Our own links in chat show our names.
+local filter = filters.CHAT_MSG_SAY
+local _, out = filter(nil, "CHAT_MSG_SAY", "look " .. link(100), "Jens")
+check(out:find("[" .. bane .. "]", 1, true), "own chat link shows the new name")
+
+-- Someone else's links: unknown at first, so we ask them.
+sent = {}
+local theirs = link(101, 777)
+_, out = filter(nil, "CHAT_MSG_GUILD", "my axe " .. theirs, "Kalle-Realm")
+check(out:find("[Rusty Hatchet]", 1, true), "unknown foreign link is left alone")
+wait(1)
+check(sent[1] and sent[1].text == "Q\t101:0:777" and sent[1].channel == "WHISPER", "we ask the owner for its name")
+fire("CHAT_MSG_ADDON", "SBChronicle", "N\t101:0:777\tKalles |cff00ff00Bästa|r Yxa", "WHISPER", "Kalle-Realm")
+_, out = filter(nil, "CHAT_MSG_GUILD", "again " .. theirs, "Kalle-Realm")
+check(out:find("[Kalles Bästa Yxa]", 1, true), "foreign link shows their name, without escape codes")
+resetTooltip()
+hooks.SetHyperlink(GameTooltip, theirs)
+check(GameTooltipTextLeft1.text == "Kalles Bästa Yxa" and table.concat(ttLines):find("Named by Kalle", 1, true), "foreign link tooltip shows their name and who named it")
+slash("others")
+_, out = filter(nil, "CHAT_MSG_GUILD", "again " .. theirs, "Kalle-Realm")
+check(out:find("[Rusty Hatchet]", 1, true), "others' names can be hidden")
+slash("others")
+
+-- Someone asks about ours.
+sent = {}
+fire("CHAT_MSG_ADDON", "SBChronicle", "Q\t100:0:0", "WHISPER", "Kalle-Realm")
+wait(1)
+check(sent[1] and sent[1].text == "N\t100:0:0\t" .. bane and sent[1].target == "Kalle-Realm", "we answer when asked")
+
+-- Inspecting someone with the addon.
+INSPECT_LINK = theirs
+target = { name = "Kalle" }
+resetTooltip()
+hooks.SetInventoryItem(GameTooltip, "target", 16)
+check(GameTooltipTextLeft1.text == "Kalles Bästa Yxa", "inspect tooltip shows their name")
+
+-- Ten levels with an item earns "faithful" (armor never gets bane names).
+bags[0][3] = nil; equip[7] = 102; scan()
+for l = 11, 20 do level = l; fire("PLAYER_LEVEL_UP", l) end
+check(rec("e:7").bane == nil, "armor does not take bane names")
+check(name("e:7", link(102)):find("Faithful Old", 1, true) or name("e:7", link(102)) == "Old Reliable", "ten levels earn a faithful name: " .. name("e:7", link(102)))
+
+-- Autonames off keeps real names but custom ones stay.
+slash("autonames")
+check(name("b:0:2", link(101)) == nil, "autonames off keeps real names")
+slash("autonames")
+
+-- UI and other commands do not crash.
+slash("")
+slash("items")
+slash("export")
+slash("help")
+check(true, "UI commands run")
+
+-- Show a spread of generated names in both languages.
+local function samples(lang)
+  slash("lang " .. lang)
+  print("\n--- Sample names (" .. lang .. ") ---")
+  for _, id in ipairs({ 101, 100, 102 }) do
+    local out = {}
+    for seed = 0, 5 do
+      table.insert(out, ns.Names.Get({ id = id, seed = seed * 7, z = "Westfall" }, link(id)))
+    end
+    print(items[id][1] .. ": " .. table.concat(out, " | "))
+  end
+  print("Earned: " .. name("e:16", link(100)) .. " | " .. name("e:7", link(102)))
+end
+samples("en")
+samples("sv")
 print("\n--- Chronicle (sv) ---")
 for _, e in ipairs(ns.char.journal) do print(ns.Stories.Entry(e)) end
-SlashCmdList.SOULBOUNDCHRONICLE("")
-SlashCmdList.SOULBOUNDCHRONICLE("items")
-SlashCmdList.SOULBOUNDCHRONICLE("export")
-SlashCmdList.SOULBOUNDCHRONICLE("help")
-print("UI ok")

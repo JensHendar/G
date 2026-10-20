@@ -1,7 +1,13 @@
 local _, ns = ...
 
 -- Templates use {placeholders}. Lists hold variants; one is picked per
--- item or entry from a stable seed, so a story never changes once written.
+-- item or entry from a stable seed, so a name or story never changes by
+-- itself.
+--
+-- Swedish names avoid grammatical gender by only using two shapes:
+-- weak adjective + definite noun ("Rostiga Svärdet") and
+-- genitive + indefinite noun ("Bergets Klinga"). Each Swedish noun is
+-- therefore { indefinite, definite }.
 local enUS = {
 	ui = {
 		title = "Soulbound Chronicle",
@@ -16,7 +22,11 @@ local enUS = {
 		bank = "Bank",
 		help = {
 			"/chronicle - open or close the chronicle",
-			"/chronicle items - show the stories of your items",
+			"/chronicle items - show your items and their stories",
+			"/chronicle name <new name> - rename the item you last hovered",
+			"/chronicle name reset - give it back its earned name",
+			"/chronicle autonames - turn automatic names on or off",
+			"/chronicle others - show or hide names from other players",
 			"/chronicle export - copy the chronicle as text",
 			"/chronicle lang en/sv - change language",
 			"/chronicle tooltip - turn item stories in tooltips on or off",
@@ -24,6 +34,16 @@ local enUS = {
 		langSet = "Language set to English.",
 		tooltipOn = "Item stories in tooltips: on.",
 		tooltipOff = "Item stories in tooltips: off.",
+		autonamesOn = "Automatic names: on.",
+		autonamesOff = "Automatic names: off.",
+		othersOn = "Names from other players: shown.",
+		othersOff = "Names from other players: hidden.",
+		noHovered = "Hover over one of your items first, then try again.",
+		renamePrompt = "New name for %s:",
+		renamed = "%s shall henceforth be known as %s.",
+		renameReset = "%s has its old name back.",
+		bindingHeader = "Soulbound Chronicle",
+		bindingRename = "Rename hovered item",
 	},
 
 	origin = {
@@ -71,55 +91,80 @@ local enUS = {
 	wornStats = "Levels: {levels} · Worn: {time} · Kills: {kills} · Deaths: {deaths}",
 	deed = "Was there when you defeated {name}.",
 
-	soul = {
-		"The soul of {name}{lvl}, torn free {tod} in {place}.",
-		"Here lies the soul of {name}{lvl}, taken {tod} in {place}.",
-		"Bound within: {name}{lvl}. Captured {tod} in {place}.",
-	},
-	soulUnknown = "A nameless soul. Whoever it was, they are forgotten.",
-	tod = {
-		dawn = "at dawn",
-		day = "in broad daylight",
-		dusk = "at dusk",
-		night = "in the dead of night",
-	},
-	soulFlavor = {
-		Humanoid = {
-			"It still whispers the names of those it left behind.",
-			"It remembers a home it will never see again.",
-			"It begs, quietly, when the bag is opened.",
+	names = {
+		originally = "Originally: {name}",
+		why = {
+			custom = "Named by you.",
+			remote = "Named by {owner}.",
+			bane = "Earned by slaying {name}.",
+			slayer = "Earned after {count} kills ({ctype}).",
+			faithful = "Earned by {levels} levels at your side.",
+			cursed = "Earned by {deaths} deaths in its company.",
 		},
-		Beast = {
-			"It paces in circles, looking for a way out.",
-			"It howls faintly when the moon is full.",
+		-- Earned names. {noun} is the item's noun.
+		bane = { "{name}'s Bane", "Bane of {name}" },
+		slayer = "{title}'s {noun}",
+		slayerTitle = {
+			Beast = "Beastslayer", Humanoid = "Manslayer", Undead = "Gravebreaker",
+			Demon = "Demonbane", Elemental = "Stormbreaker", Dragonkin = "Dragonslayer",
+			Giant = "Giantfeller", Mechanical = "Gearbreaker", Critter = "Bunny Menace",
+			default = "Slayer",
 		},
-		Undead = {
-			"It has died twice now, and resents you for both.",
-			"It is almost relieved.",
+		faithful = { "Faithful Old {noun}", "Old Reliable" },
+		cursed = { "The Cursed {noun}", "The Unlucky {noun}" },
+
+		-- Generated names.
+		junk = { "{junk} {noun}" },
+		plain = { "{plain} {noun}", "{noun} of {zone}", "{person}'s {noun}" },
+		themed = { "{themeAdj} {noun}", "{noun} of the {themeNoun}", "{person}'s {themeAdj} {noun}" },
+
+		junkAdj = {
+			"Rusty", "Wobbly", "Disappointing", "Questionable", "Second-Hand", "Smelly",
+			"Slightly Haunted", "Borrowed", "Sad", "Crusty", "Damp", "Forgettable",
 		},
-		Demon = {
-			"It is not the first time it has been bound. It will not be the last.",
-			"It is laughing at something you cannot hear.",
+		plainAdj = {
+			"Trusty", "Humble", "Honest", "Sturdy", "Faithful", "Plain",
+			"Stubborn", "Homely", "Patient", "Lucky",
 		},
-		Elemental = {
-			"It flickers, restless, like a flame without fuel.",
-			"It hums with the pull of earth and storm.",
+		persons = { "Grimtusk", "Old Bessie", "Barnabus", "Ozzle", "Mirelle", "Torvald", "Fenwick", "Hilda", "Gus", "Pip" },
+		themes = {
+			strength = { adj = { "Mighty", "Iron", "Thundering" }, noun = { "Mountain", "Bear", "Ox" } },
+			agility = { adj = { "Swift", "Shadow", "Whispering" }, noun = { "Fox", "Shadow", "Wind" } },
+			stamina = { adj = { "Stalwart", "Stone", "Enduring" }, noun = { "Oak", "Boulder", "Tortoise" } },
+			intellect = { adj = { "Arcane", "Starlit", "Learned" }, noun = { "Stars", "Scholar", "Owl" } },
+			spirit = { adj = { "Serene", "Dreaming", "Moonlit" }, noun = { "Moon", "Dreamer", "Stillwater" } },
 		},
-		Dragonkin = {
-			"Even caged, it dreams of the sky.",
-		},
-		Giant = {
-			"It is far too big for this little crystal, and it knows it.",
-		},
-		Mechanical = {
-			"There is barely anything in here. A hum, perhaps.",
-		},
-		Critter = {
-			"A very small soul. You feel slightly ashamed.",
-		},
-		default = {
-			"It is cold to the touch.",
-			"It pulses faintly, like a heartbeat.",
+		nouns = {
+			sword = { "Blade", "Edge", "Sword", "Pigsticker" },
+			axe = { "Axe", "Cleaver", "Chopper" },
+			mace = { "Mace", "Club", "Knocker" },
+			dagger = { "Dagger", "Knife", "Shiv" },
+			fist = { "Knuckles", "Fist" },
+			polearm = { "Spear", "Pike", "Halberd" },
+			staff = { "Staff", "Stick", "Rod" },
+			bow = { "Bow", "Longbow", "Twanger" },
+			gun = { "Boomstick", "Rifle", "Blunderbuss" },
+			crossbow = { "Crossbow", "Bolt-Thrower" },
+			wand = { "Wand", "Twig", "Spark" },
+			thrown = { "Throwing Knives", "Chuckers" },
+			fishing = { "Fishing Pole", "Rod" },
+			head = { "Helm", "Hat", "Cap" },
+			neck = { "Pendant", "Choker", "Amulet" },
+			shoulder = { "Pauldrons", "Shoulderpads", "Mantle" },
+			chest = { "Tunic", "Vest", "Robe", "Jerkin" },
+			waist = { "Belt", "Girdle", "Sash" },
+			legs = { "Leggings", "Trousers", "Pants" },
+			feet = { "Boots", "Shoes", "Sandals" },
+			wrist = { "Bracers", "Cuffs", "Wristguards" },
+			hands = { "Gloves", "Gauntlets", "Mitts" },
+			finger = { "Ring", "Band", "Loop" },
+			trinket = { "Charm", "Trinket", "Lucky Thing" },
+			back = { "Cloak", "Cape", "Shawl" },
+			shield = { "Shield", "Buckler", "Door" },
+			holdable = { "Orb", "Tome", "Lantern" },
+			shirt = { "Shirt", "Tunic" },
+			tabard = { "Tabard", "Banner" },
+			generic = { "Thing", "Gear" },
 		},
 	},
 
@@ -155,15 +200,10 @@ local enUS = {
 			"Escaped death by a hair in {place}, with {pct}% health left.",
 			"Nearly died in {place}. {pct}% health. Too close.",
 		},
-		soul = {
-			"Captured the soul of {name}{lvl} in {place}.",
-		},
-		soulused = {
-			"The soul of {name} was spent on {spell}.",
-		},
 		item = {
 			"Acquired {link}. {origin}",
 		},
+		renamed = "{old} shall henceforth be known as {new}.",
 	},
 
 	cls = {
@@ -198,7 +238,11 @@ local svSE = {
 		bank = "Bank",
 		help = {
 			"/chronicle - öppna eller stäng krönikan",
-			"/chronicle items - visa föremålens historier",
+			"/chronicle items - visa dina föremål och deras historier",
+			"/chronicle name <nytt namn> - döp om föremålet du senast hovrade",
+			"/chronicle name reset - ge det tillbaka sitt förtjänade namn",
+			"/chronicle autonames - slå på eller av automatiska namn",
+			"/chronicle others - visa eller dölj andra spelares namn",
 			"/chronicle export - kopiera krönikan som text",
 			"/chronicle lang en/sv - byt språk",
 			"/chronicle tooltip - slå på eller av historier i tooltips",
@@ -206,6 +250,15 @@ local svSE = {
 		langSet = "Språket är nu svenska.",
 		tooltipOn = "Föremålshistorier i tooltips: på.",
 		tooltipOff = "Föremålshistorier i tooltips: av.",
+		autonamesOn = "Automatiska namn: på.",
+		autonamesOff = "Automatiska namn: av.",
+		othersOn = "Andra spelares namn: visas.",
+		othersOff = "Andra spelares namn: dolda.",
+		noHovered = "Hovra över ett av dina föremål först och försök igen.",
+		renamePrompt = "Nytt namn för %s:",
+		renamed = "%s ska hädanefter kallas %s.",
+		renameReset = "%s har fått tillbaka sitt gamla namn.",
+		bindingRename = "Döp om hovrat föremål",
 	},
 
 	origin = {
@@ -253,55 +306,78 @@ local svSE = {
 	wornStats = "Levels: {levels} · Buret: {time} · Dödade: {kills} · Dödsfall: {deaths}",
 	deed = "Var med när du besegrade {name}.",
 
-	soul = {
-		"Själen av {name}{lvl}, sliten loss {tod} i {place}.",
-		"Här vilar själen av {name}{lvl}, tagen {tod} i {place}.",
-		"Bunden här inne: {name}{lvl}. Fångad {tod} i {place}.",
-	},
-	soulUnknown = "En namnlös själ. Vem den än var, är den glömd.",
-	tod = {
-		dawn = "i gryningen",
-		day = "mitt på ljusa dagen",
-		dusk = "i skymningen",
-		night = "mitt i natten",
-	},
-	soulFlavor = {
-		Humanoid = {
-			"Den viskar fortfarande namnen på dem den lämnade.",
-			"Den minns ett hem den aldrig får se igen.",
-			"Den ber, tyst, varje gång väskan öppnas.",
+	names = {
+		originally = "Egentligen: {name}",
+		why = {
+			custom = "Namngiven av dig.",
+			remote = "Namngiven av {owner}.",
+			bane = "Förtjänat genom att dräpa {name}.",
+			slayer = "Förtjänat efter {count} dödade ({ctype}).",
+			faithful = "Förtjänat genom {levels} levels vid din sida.",
+			cursed = "Förtjänat genom {deaths} dödsfall i dess sällskap.",
 		},
-		Beast = {
-			"Den går i cirklar och letar efter en väg ut.",
-			"Den ylar svagt när det är fullmåne.",
+		bane = { "{nameGen} Fördärv", "{nameGen} Död" },
+		slayer = "{title} {noun}",
+		slayerTitle = {
+			Beast = "Bestdräparens", Humanoid = "Mandråparens", Undead = "Gravbrytarens",
+			Demon = "Demonjägarens", Elemental = "Stormbrytarens", Dragonkin = "Drakdräparens",
+			Giant = "Jättefällarens", Mechanical = "Kugghjulskrossarens", Critter = "Kaninskräckens",
+			default = "Dräparens",
 		},
-		Undead = {
-			"Den har dött två gånger nu och hatar dig för båda.",
-			"Den verkar nästan lättad.",
+		faithful = { "Trogna Gamla {nounDef}", "Gamla Pålitliga" },
+		cursed = { "Förbannade {nounDef}", "Olycksaliga {nounDef}" },
+
+		junk = { "{junk} {nounDef}" },
+		plain = { "{plain} {nounDef}", "{nounDef} från {zone}", "{personGen} {noun}" },
+		themed = { "{themeAdj} {nounDef}", "{themeNoun} {noun}", "{personGen} {themeAdj} {noun}" },
+
+		junkAdj = {
+			"Rostiga", "Vingliga", "Tvivelaktiga", "Begagnade", "Illaluktande", "Lätt Hemsökta",
+			"Lånade", "Ledsna", "Skorpiga", "Fuktiga", "Glömda", "Sorgliga",
 		},
-		Demon = {
-			"Det är inte första gången den binds. Det blir inte den sista.",
-			"Den skrattar åt något du inte kan höra.",
+		plainAdj = {
+			"Pålitliga", "Ödmjuka", "Ärliga", "Stadiga", "Trofasta", "Enkla",
+			"Envisa", "Hemtrevliga", "Tålmodiga", "Lyckosamma",
 		},
-		Elemental = {
-			"Den fladdrar rastlöst, som en låga utan bränsle.",
-			"Den surrar av jordens och stormens dragningskraft.",
+		persons = { "Grimtusk", "Gamla Bessie", "Barnabus", "Ozzle", "Mirelle", "Torvald", "Fenwick", "Hilda", "Gus", "Pip" },
+		themes = {
+			strength = { adj = { "Mäktiga", "Järnhårda", "Dånande" }, noun = { "Bergets", "Björnens", "Oxens" } },
+			agility = { adj = { "Snabba", "Skuggiga", "Viskande" }, noun = { "Rävens", "Skuggans", "Vindens" } },
+			stamina = { adj = { "Ståndaktiga", "Stenhårda", "Uthålliga" }, noun = { "Ekens", "Stenblockets", "Sköldpaddans" } },
+			intellect = { adj = { "Arkana", "Stjärnklara", "Lärda" }, noun = { "Stjärnornas", "Lärlingens", "Ugglans" } },
+			spirit = { adj = { "Stilla", "Drömmande", "Månbelysta" }, noun = { "Månens", "Drömmarens", "Källans" } },
 		},
-		Dragonkin = {
-			"Även i fångenskap drömmer den om himlen.",
-		},
-		Giant = {
-			"Den är alldeles för stor för den lilla kristallen, och den vet om det.",
-		},
-		Mechanical = {
-			"Här finns knappt något. Ett surrande, kanske.",
-		},
-		Critter = {
-			"En mycket liten själ. Du skäms lite.",
-		},
-		default = {
-			"Den är kall att röra vid.",
-			"Den pulserar svagt, som ett hjärtslag.",
+		nouns = {
+			sword = { { "Klinga", "Klingan" }, { "Egg", "Eggen" }, { "Svärd", "Svärdet" }, { "Grisstickare", "Grisstickaren" } },
+			axe = { { "Yxa", "Yxan" }, { "Klyvare", "Klyvaren" }, { "Huggare", "Huggaren" } },
+			mace = { { "Klubba", "Klubban" }, { "Stridsklubba", "Stridsklubban" }, { "Knackare", "Knackaren" } },
+			dagger = { { "Dolk", "Dolken" }, { "Kniv", "Kniven" }, { "Stilett", "Stiletten" } },
+			fist = { { "Knogjärn", "Knogjärnet" }, { "Näve", "Näven" } },
+			polearm = { { "Spjut", "Spjutet" }, { "Pik", "Piken" }, { "Hillebard", "Hillebarden" } },
+			staff = { { "Stav", "Staven" }, { "Käpp", "Käppen" }, { "Påk", "Påken" } },
+			bow = { { "Båge", "Bågen" }, { "Långbåge", "Långbågen" } },
+			gun = { { "Bössa", "Bössan" }, { "Gevär", "Geväret" }, { "Smällare", "Smällaren" } },
+			crossbow = { { "Armborst", "Armborstet" }, { "Bultkastare", "Bultkastaren" } },
+			wand = { { "Trollstav", "Trollstaven" }, { "Kvist", "Kvisten" }, { "Gnista", "Gnistan" } },
+			thrown = { { "Kastkniv", "Kastkniven" } },
+			fishing = { { "Metspö", "Metspöet" } },
+			head = { { "Hjälm", "Hjälmen" }, { "Hatt", "Hatten" }, { "Mössa", "Mössan" } },
+			neck = { { "Hänge", "Hänget" }, { "Halsband", "Halsbandet" }, { "Amulett", "Amuletten" } },
+			shoulder = { { "Axelskydd", "Axelskydden" }, { "Mantel", "Manteln" } },
+			chest = { { "Tunika", "Tunikan" }, { "Väst", "Västen" }, { "Rock", "Rocken" } },
+			waist = { { "Bälte", "Bältet" }, { "Gördel", "Gördeln" }, { "Skärp", "Skärpet" } },
+			legs = { { "Byxor", "Byxorna" }, { "Benskydd", "Benskydden" } },
+			feet = { { "Stövlar", "Stövlarna" }, { "Skor", "Skorna" }, { "Sandaler", "Sandalerna" } },
+			wrist = { { "Armskydd", "Armskydden" }, { "Manschetter", "Manschetterna" } },
+			hands = { { "Handskar", "Handskarna" }, { "Vantar", "Vantarna" } },
+			finger = { { "Ring", "Ringen" }, { "Signetring", "Signetringen" } },
+			trinket = { { "Berlock", "Berlocken" }, { "Talisman", "Talismanen" }, { "Lyckosak", "Lyckosaken" } },
+			back = { { "Mantel", "Manteln" }, { "Kappa", "Kappan" }, { "Sjal", "Sjalen" } },
+			shield = { { "Sköld", "Skölden" }, { "Bucklare", "Bucklaren" }, { "Dörr", "Dörren" } },
+			holdable = { { "Klot", "Klotet" }, { "Bok", "Boken" }, { "Lykta", "Lyktan" } },
+			shirt = { { "Skjorta", "Skjortan" } },
+			tabard = { { "Vapenrock", "Vapenrocken" } },
+			generic = { { "Grej", "Grejen" }, { "Pryl", "Prylen" } },
 		},
 	},
 
@@ -337,15 +413,10 @@ local svSE = {
 			"Undkom döden med nöd och näppe i {place}, med {pct}% hälsa kvar.",
 			"Var nära att dö i {place}. {pct}% hälsa. För nära.",
 		},
-		soul = {
-			"Fångade själen av {name}{lvl} i {place}.",
-		},
-		soulused = {
-			"Själen av {name} offrades till {spell}.",
-		},
 		item = {
 			"Fick {link}. {origin}",
 		},
+		renamed = "{old} ska hädanefter kallas {new}.",
 	},
 
 	cls = {

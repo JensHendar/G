@@ -53,8 +53,13 @@ local function itemsText()
 			table.insert(out, DATE_COLOR .. L.ui[group] .. "|r")
 			for _, item in ipairs(list) do
 				table.insert(out, "")
-				table.insert(out, item.link or "?")
-				for _, line in ipairs(ns.Stories.ItemLines(item.rec)) do
+				local name = ns.Names.Get(item.rec, item.link)
+				local shown = item.link or "?"
+				if name and item.link then
+					shown = item.link:gsub("%[.-%]", function() return "[" .. name .. "]" end, 1)
+				end
+				table.insert(out, shown)
+				for _, line in ipairs(ns.Stories.ItemLines(item.rec, item.link)) do
 					table.insert(out, "  " .. DIM_COLOR .. line .. "|r")
 				end
 			end
@@ -156,6 +161,7 @@ end
 
 ns.Listen("JOURNAL_CHANGED", function() if mode == "chronicle" then UI.Refresh() end end)
 ns.Listen("ITEMS_CHANGED", function() if mode == "items" then UI.Refresh() end end)
+ns.Listen("NAMES_CHANGED", function() if mode == "items" then UI.Refresh() end end)
 
 ---------------------------------------------------------------------------
 -- Export window: plain text to copy out of the game
