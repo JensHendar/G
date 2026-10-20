@@ -36,8 +36,24 @@ local function isTracked(itemID)
 	return tracked
 end
 
+-- Classic-style clients have a bank container plus bank bags; modern ones
+-- have bank tabs instead.
+local BANK_BAGS = {}
+local bagIndex = Enum and Enum.BagIndex
+if bagIndex and bagIndex.CharacterBankTab_1 then
+	for i = 1, 6 do
+		local bag = bagIndex["CharacterBankTab_" .. i]
+		if bag then table.insert(BANK_BAGS, bag) end
+	end
+else
+	table.insert(BANK_BAGS, BANK_CONTAINER)
+	for bag = NUM_BAGS + 1, NUM_BAGS + NUM_BANK_BAGS do table.insert(BANK_BAGS, bag) end
+end
+local IS_BANK_BAG = {}
+for _, bag in ipairs(BANK_BAGS) do IS_BANK_BAG[bag] = true end
+
 local function isBankBag(bag)
-	return bag == BANK_CONTAINER or (bag > NUM_BAGS and bag <= NUM_BAGS + NUM_BANK_BAGS)
+	return IS_BANK_BAG[bag] or false
 end
 
 -- Item GUIDs tell two identical items apart. Clients without them fall
@@ -59,8 +75,7 @@ local function forEachLocation(fn)
 	end
 	for bag = 0, NUM_BAGS do bagSlots(bag) end
 	if bankOpen then
-		bagSlots(BANK_CONTAINER)
-		for bag = NUM_BAGS + 1, NUM_BAGS + NUM_BANK_BAGS do bagSlots(bag) end
+		for _, bag in ipairs(BANK_BAGS) do bagSlots(bag) end
 	end
 end
 
@@ -101,8 +116,9 @@ ns.On("LOOT_OPENED", function()
 	end
 	local info
 	local ok, guid = pcall(GetLootSourceInfo, 1)
-	if ok and guid then info = ns.units[guid] end
-	if not info and UnitExists("target") and UnitIsDead("target") then
+	guid = ok and ns.Plain(guid)
+	if guid then info = ns.units[guid] end
+	if not info and ns.Plain(UnitIsDead("target")) then
 		info = ns.RememberUnit("target")
 	end
 	if info and info.name then
@@ -119,12 +135,12 @@ end)
 ns.On("QUEST_FINISHED", function() closeContext("quest") end)
 
 ns.On("MERCHANT_SHOW", function()
-	openContext("vendor", { src = UnitName("npc") })
+	openContext("vendor", { src = ns.Plain(UnitName("npc")) })
 end)
 ns.On("MERCHANT_CLOSED", function() closeContext("vendor") end)
 
 ns.On("TRADE_SHOW", function()
-	openContext("trade", { src = UnitName("NPC") })
+	openContext("trade", { src = ns.Plain(UnitName("NPC")) })
 end)
 ns.On("TRADE_CLOSED", function() closeContext("trade", 5) end)
 
@@ -133,6 +149,8 @@ ns.On("MAIL_CLOSED", function() closeContext("mail") end)
 
 local createdPattern
 ns.On("CHAT_MSG_LOOT", function(msg)
+	msg = ns.Plain(msg)
+	if not msg then return end
 	if not createdPattern and LOOT_ITEM_CREATED_SELF then
 		createdPattern = "^" .. LOOT_ITEM_CREATED_SELF:gsub("%.", "%%."):gsub("%%s", ".+")
 	end

@@ -63,7 +63,7 @@ hooksecurefunc(GameTooltip, "SetInventoryItem", function(tooltip, unit, slot)
 	end
 	-- Inspecting someone else.
 	local link = GetInventoryItemLink(unit, slot)
-	local full = GetUnitName and GetUnitName(unit, true) or UnitName(unit)
+	local full = ns.Plain(GetUnitName and GetUnitName(unit, true) or UnitName(unit))
 	if not link or not full then return end
 	if not showRemote(tooltip, link, Ambiguate(full, "none")) then
 		ns.Comm.Ask(full, ns.Comm.KeyFromLink(link))

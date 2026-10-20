@@ -10,17 +10,24 @@ bit = { band = function(a, b) local r, p = 0, 1; while a > 0 and b > 0 do if a %
 wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 strtrim = function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
 Ambiguate = function(name) return (name:gsub("%-.*$", "")) end
-COMBATLOG_OBJECT_REACTION_FRIENDLY = 0x10
+local SECRET = setmetatable({}, { __tostring = function() return "<secret>" end })
+function issecretvalue(v) return v == SECRET end
+function IsInInstance() return INSTANCE or false end
 UISpecialFrames = {}
 SlashCmdList = {}
 ACCEPT, CANCEL = "Accept", "Cancel"
 local chat = {}
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) table.insert(chat, m) end }
 
+local registered = {}
 local function stub()
   local o = { scripts = {} }
   return setmetatable(o, { __index = function(t, k)
     if k == "SetScript" then return function(self, n, f) self.scripts[n] = f end end
+    if k == "RegisterEvent" then return function(_, e)
+      if e == "COMBAT_LOG_EVENT_UNFILTERED" then error("ADDON_ACTION_FORBIDDEN: " .. e) end
+      registered[e] = true
+    end end
     if k == "GetStringHeight" or k == "GetVerticalScrollRange" then return function() return 100 end end
     if k == "IsShown" then return function(self) return self.shown end end
     if k == "Show" then return function(self) self.shown = true end end
@@ -104,26 +111,25 @@ function GetInventoryItemLink(unit, s) if unit == "player" then return equip[s] 
 local level = 10
 local target
 function UnitGUID(u) if u == "player" then return "P" end if u == "target" then return target and target.guid end end
-function UnitName(u) if u == "player" then return "Jens" end return target and target.name end
+function UnitName(u) if u == "player" then return "Jens" end if u == "targettarget" then return target and target.attacking and "Jens" end return target and target.name end
 function GetUnitName(u) return UnitName(u) end
 function UnitLevel(u) if u == "player" then return level end return target and target.level end
-function UnitIsPlayer() return false end
+function UnitIsPlayer(u) return u == "player" end
+function UnitCanAttack(_, u) return u == "target" and target ~= nil and not target.friendly end
+function UnitThreatSituation(_, u) return u == "target" and target and target.attacking and 1 or nil end
 function UnitClassification() return target and target.cls or "normal" end
 function UnitCreatureType() return target and target.ctype end
-function UnitExists() return target ~= nil end
-function UnitIsDead() return target and target.dead end
-function UnitIsUnit(a, b) return a == b end
+function UnitExists(u) return u == "player" or (u == "target" and target ~= nil) end
+function UnitIsDead(u) return u == "target" and target and target.dead or false end
+function UnitIsUnit(a, b) if a == "targettarget" then return target and target.attacking and b == "player" or false end return a == b end
 function UnitAffectingCombat() return true end
-function UnitHealth() return 50 end
+function UnitHealth() return HEALTH or 50 end
 function UnitHealthMax() return 100 end
 function UnitIsDeadOrGhost() return false end
 function GetRealZoneText() return "Elwynn Forest" end
 function GetSubZoneText() return "Fargodeep Mine" end
-function IsInInstance() return false end
 function IsFishingLoot() return false end
 function GetLootSourceInfo() return target and target.guid end
-local cleu
-function CombatLogGetCurrentEventInfo() return unpack(cleu) end
 
 -- Load the addon in TOC order.
 local ns = {}
@@ -139,14 +145,14 @@ local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end p
 local function rec(key) return ns.Tracker.RecordAt(key) end
 local function name(key, l) return ns.Names.Get(rec(key), l) end
 local guidN = 0
+-- Fight a mob: it notices us (threat), then we see it die.
 local function kill(n, cls, ctype)
   guidN = guidN + 1
-  target = { guid = "C" .. guidN, name = n, level = 10, cls = cls, ctype = ctype }
+  target = { guid = "C" .. guidN, name = n, level = 10, cls = cls, ctype = ctype, attacking = true }
   fire("PLAYER_TARGET_CHANGED")
-  cleu = { 0, "SWING_DAMAGE", false, "P", "Jens", 0, 0, target.guid, n, 0x40, 0 }
-  fire("COMBAT_LOG_EVENT_UNFILTERED")
-  cleu = { 0, "UNIT_DIED", false, "", nil, 0, 0, target.guid, n, 0x40, 0 }
-  fire("COMBAT_LOG_EVENT_UNFILTERED")
+  fire("UNIT_THREAT_LIST_UPDATE", "target")
+  target.dead = true; target.attacking = false
+  fire("UNIT_HEALTH", "target")
 end
 
 -- Install with some gear already in the bags.
@@ -156,6 +162,7 @@ fire("PLAYER_LOGIN")
 fire("PLAYER_ENTERING_WORLD")
 wait(11)
 
+check(not registered.COMBAT_LOG_EVENT_UNFILTERED, "the forbidden combat log is never registered")
 check(rec("b:0:1").o.k == "before", "existing item gets 'before' origin")
 check(name("b:0:1", link(100)) ~= nil, "white item gets a name: " .. tostring(name("b:0:1", link(100))))
 check(name("b:0:2", link(101)) ~= nil, "gray item gets a name: " .. tostring(name("b:0:2", link(101))))
@@ -260,6 +267,31 @@ check(rec("e:16").kills == kills + 1 and rec("e:16").levels == 10, "re-equipping
 slash("autonames")
 check(name("b:0:2", link(101)) == nil, "autonames off keeps real names")
 slash("autonames")
+
+-- A mob we never fought is not our kill.
+local kills0 = rec("e:16").kills
+target = { guid = "X1", name = "Someone Else's Wolf", level = 10, ctype = "Beast", dead = true }
+fire("UNIT_HEALTH", "target")
+check(rec("e:16").kills == kills0, "dead mobs we never fought do not count")
+
+-- Dying to a mob names it as the killer.
+target = { guid = "X2", name = "Hogger", level = 11, cls = "elite", ctype = "Humanoid", attacking = true }
+fire("PLAYER_TARGET_CHANGED"); fire("UNIT_TARGET", "target")
+fire("PLAYER_DEAD")
+local last = ns.char.journal[#ns.char.journal]
+check(last.k == "death" and last.killer == "Hogger", "death names the killer")
+
+-- Secret values (instances on Forever) are ignored instead of erroring.
+INSTANCE = true
+HEALTH = SECRET
+fire("UNIT_HEALTH", "player")
+local ok, out2 = pcall(filters.CHAT_MSG_PARTY, nil, "CHAT_MSG_PARTY", SECRET, "Kalle")
+check(ok and out2 == false, "secret chat messages are left alone")
+sent = {}
+fire("CHAT_MSG_ADDON", "SBChronicle", "Q\t100:0:0", "WHISPER", "Kalle-Realm")
+wait(1)
+check(#sent == 0, "no addon messages are sent inside instances")
+INSTANCE, HEALTH = false, nil
 
 -- UI and other commands do not crash.
 slash("")

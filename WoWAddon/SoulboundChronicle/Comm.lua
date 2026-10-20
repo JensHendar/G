@@ -76,13 +76,21 @@ end
 -- Sending
 ---------------------------------------------------------------------------
 
+-- Addon messages are not allowed inside instances on Forever.
+local function canSend()
+	if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown() then
+		return false
+	end
+	return not (issecretvalue and IsInInstance())
+end
+
 local function pump()
 	local m = table.remove(queue, 1)
 	if not m then
 		sending = false
 		return
 	end
-	pcall(ns.SendAddonMessage, PREFIX, m.text, m.channel, m.target)
+	if canSend() then pcall(ns.SendAddonMessage, PREFIX, m.text, m.channel, m.target) end
 	C_Timer.After(SEND_INTERVAL, pump)
 end
 
@@ -164,7 +172,8 @@ end)
 ---------------------------------------------------------------------------
 
 ns.On("CHAT_MSG_ADDON", function(prefix, text, _, sender)
-	if prefix ~= PREFIX or not sender then return end
+	prefix, text, sender = ns.Plain(prefix), ns.Plain(text), ns.Plain(sender)
+	if prefix ~= PREFIX or not sender or not text then return end
 	local who = Ambiguate(sender, "none")
 	if who == ns.playerName then return end
 
@@ -193,6 +202,8 @@ local CHAT_EVENTS = {
 }
 
 local function filter(_, event, msg, author, ...)
+	-- Chat in instances can be secret; leave those messages alone.
+	if not ns.Plain(msg) or not ns.Plain(author) then return false end
 	if type(msg) ~= "string" or not msg:find("|Hitem:", 1, true) then return false end
 	-- In a sent whisper the author is the person we wrote to.
 	local mine = event == "CHAT_MSG_WHISPER_INFORM" or Ambiguate(author or "", "none") == ns.playerName

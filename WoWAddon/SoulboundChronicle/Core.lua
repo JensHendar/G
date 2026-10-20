@@ -101,6 +101,21 @@ ns.On("PLAYER_LOGIN", function()
 end)
 
 ---------------------------------------------------------------------------
+-- Secret values: on modern clients (Forever, Midnight) many unit and chat
+-- values are opaque inside instances. Comparing them is an error, so
+-- everything read from a unit or a chat message goes through Plain first.
+---------------------------------------------------------------------------
+
+local isSecret = issecretvalue or function() return false end
+
+-- Returns v, or nil if it is a secret value we are not allowed to read.
+function ns.Plain(v)
+	if isSecret(v) then return nil end
+	return v
+end
+local Plain = ns.Plain
+
+---------------------------------------------------------------------------
 -- Unit memory: remember what we saw of a unit so a kill or a corpse can be
 -- described after the unit is gone.
 ---------------------------------------------------------------------------
@@ -109,8 +124,8 @@ local units, unitCount = {}, 0
 ns.units = units
 
 function ns.RememberUnit(unit)
-	local guid = UnitGUID(unit)
-	if not guid or UnitIsPlayer(unit) then return end
+	local guid = Plain(UnitGUID(unit))
+	if not guid or Plain(UnitIsPlayer(unit)) ~= false then return end
 	if not units[guid] then
 		unitCount = unitCount + 1
 		if unitCount > 500 then
@@ -119,76 +134,97 @@ function ns.RememberUnit(unit)
 		end
 	end
 	units[guid] = {
-		name = UnitName(unit),
-		level = UnitLevel(unit),
-		cls = UnitClassification(unit),
-		ctype = UnitCreatureType(unit),
+		name = Plain(UnitName(unit)),
+		level = Plain(UnitLevel(unit)),
+		cls = Plain(UnitClassification(unit)),
+		ctype = Plain(UnitCreatureType(unit)),
 	}
 	return units[guid]
 end
 
-ns.On("PLAYER_TARGET_CHANGED", function() ns.RememberUnit("target") end)
-ns.On("UPDATE_MOUSEOVER_UNIT", function() ns.RememberUnit("mouseover") end)
-ns.On("NAME_PLATE_UNIT_ADDED", function(unit) ns.RememberUnit(unit) end)
-
 ---------------------------------------------------------------------------
--- Combat: kills and killers
+-- Combat: kills and killers.
+--
+-- The combat log is off limits to addons on Forever (registering for it
+-- is blocked), so kills are worked out from unit events instead: a hostile
+-- unit that has us on its threat list is "engaged", and an engaged unit we
+-- later see dead counts as a kill.
 ---------------------------------------------------------------------------
 
-local band = bit.band
-local FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY or 0x10
-local engaged = {}       -- guid -> time we last hit it
-local lastHit            -- who last hurt the player
+local engaged = {}  -- guid -> time it last fought us
+local lastAttacker  -- the last hostile unit seen targeting us
 
-local function isMine(guid)
-	return guid and (guid == ns.playerGUID or guid == UnitGUID("pet"))
+local function isHostile(unit)
+	return Plain(UnitCanAttack("player", unit)) and Plain(UnitIsPlayer(unit)) == false
 end
 
-ns.On("COMBAT_LOG_EVENT_UNFILTERED", function()
-	local _, sub, _, srcGUID, srcName, _, _, dstGUID, dstName, dstFlags, _, a12 = CombatLogGetCurrentEventInfo()
+local function watch(unit)
+	if not unit or not Plain(UnitExists(unit)) then return end
+	local guid = Plain(UnitGUID(unit))
+	if not guid then return end
 
-	if isMine(srcGUID) and dstGUID ~= ns.playerGUID and band(dstFlags or 0, FRIENDLY) == 0 then
-		engaged[dstGUID] = GetTime()
-		if not units[dstGUID] then
-			units[dstGUID] = { name = dstName }
-		end
-	end
-
-	if dstGUID == ns.playerGUID then
-		if sub == "ENVIRONMENTAL_DAMAGE" then
-			lastHit = { env = a12, t = GetTime() }
-		elseif sub:find("_DAMAGE$") and srcName and srcGUID ~= ns.playerGUID then
-			lastHit = { name = srcName, t = GetTime() }
-		end
-	end
-
-	if sub == "UNIT_DIED" and engaged[dstGUID] then
-		local fresh = GetTime() - engaged[dstGUID] < 120
-		engaged[dstGUID] = nil
-		if not fresh then return end
-		local info = units[dstGUID] or { name = dstName }
-		local zone, subzone = ns.Place()
+	-- Corpses may no longer count as attackable, so check deaths first.
+	if Plain(UnitIsDead(unit)) then
+		local since = engaged[guid]
+		if not since then return end
+		engaged[guid] = nil
+		if GetTime() - since > 120 then return end
+		local info = units[guid] or ns.RememberUnit(unit) or {}
+		local zone, sub = ns.Place()
 		ns.Fire("KILL", {
-			guid = dstGUID, name = info.name or dstName, level = info.level,
-			cls = info.cls, ctype = info.ctype, zone = zone, sub = subzone,
+			guid = guid, name = info.name, level = info.level,
+			cls = info.cls, ctype = info.ctype, zone = zone, sub = sub,
+		})
+		return
+	end
+	if not isHostile(unit) then return end
+
+	local threat = UnitThreatSituation and Plain(UnitThreatSituation("player", unit))
+	local targetsUs = Plain(UnitIsUnit(unit .. "target", "player"))
+	if threat or targetsUs then
+		if not engaged[guid] then ns.RememberUnit(unit) end
+		engaged[guid] = GetTime()
+	end
+	if targetsUs then
+		lastAttacker = { name = (units[guid] or {}).name, t = GetTime() }
+	end
+end
+ns.WatchUnit = watch
+
+local function watchEvent(unit) watch(unit) end
+ns.On("UNIT_THREAT_LIST_UPDATE", watchEvent)
+ns.On("UNIT_TARGET", watchEvent)
+ns.On("UNIT_HEALTH", watchEvent)
+ns.On("UNIT_FLAGS", watchEvent)
+ns.On("NAME_PLATE_UNIT_ADDED", function(unit) ns.RememberUnit(unit); watch(unit) end)
+ns.On("NAME_PLATE_UNIT_REMOVED", watchEvent)
+ns.On("PLAYER_TARGET_CHANGED", function() ns.RememberUnit("target"); watch("target") end)
+ns.On("UPDATE_MOUSEOVER_UNIT", function() ns.RememberUnit("mouseover"); watch("mouseover") end)
+
+-- Looting a corpse proves it died, even if we never saw it fall.
+ns.On("LOOT_OPENED", function()
+	local ok, guid = pcall(GetLootSourceInfo, 1)
+	guid = ok and Plain(guid)
+	if guid and engaged[guid] and units[guid] then
+		local info = units[guid]
+		engaged[guid] = nil
+		local zone, sub = ns.Place()
+		ns.Fire("KILL", {
+			guid = guid, name = info.name, level = info.level,
+			cls = info.cls, ctype = info.ctype, zone = zone, sub = sub,
 		})
 	end
 end)
 
 ns.On("ENCOUNTER_END", function(_, name, _, _, success)
-	if success == 1 then ns.Fire("BOSS", name) end
+	name = Plain(name)
+	if Plain(success) == 1 and name then ns.Fire("BOSS", name) end
 end)
 
 ns.On("PLAYER_DEAD", function()
-	local killer
-	if lastHit and GetTime() - lastHit.t < 15 then
-		if lastHit.env then
-			killer = ns.L().env[lastHit.env] or lastHit.env:lower()
-		else
-			killer = lastHit.name
-		end
-	end
-	lastHit = nil
+	local killer = lastAttacker and GetTime() - lastAttacker.t < 15 and lastAttacker.name or nil
+	lastAttacker = nil
+	wipe(engaged)
 	ns.Fire("DEATH", killer)
 end)
 

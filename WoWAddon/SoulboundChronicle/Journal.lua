@@ -85,9 +85,9 @@ local lastNearDeath = 0
 
 local function onHealth(unit)
 	if unit ~= "player" or not UnitAffectingCombat("player") then return end
-	local max = UnitHealthMax("player")
-	if not max or max == 0 then return end
-	local pct = UnitHealth("player") / max
+	local health, max = ns.Plain(UnitHealth("player")), ns.Plain(UnitHealthMax("player"))
+	if not health or not max or max == 0 then return end
+	local pct = health / max
 	if pct > 0 and pct < NEAR_DEATH and (not lowest or pct < lowest) then
 		lowest = pct
 	end

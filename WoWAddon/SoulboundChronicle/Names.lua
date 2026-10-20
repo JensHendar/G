@@ -299,7 +299,7 @@ function N.RenameHovered(newName)
 	ns.Fire("NAMES_CHANGED")
 end
 
-StaticPopupDialogs = StaticPopupDialogs or {}
+-- Only add our own entry; never reassign Blizzard's StaticPopupDialogs.
 StaticPopupDialogs.SOULBOUNDCHRONICLE_RENAME = {
 	text = "%s",
 	button1 = ACCEPT,

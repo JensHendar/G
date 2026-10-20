@@ -225,14 +225,6 @@ local L = {
 		rareelite = "a rare elite",
 		worldboss = "a world boss",
 	},
-	env = {
-		Falling = "a long fall",
-		Drowning = "the deep water",
-		Fatigue = "exhaustion",
-		Fire = "fire",
-		Lava = "lava",
-		Slime = "slime",
-	},
 	level = " (level {lvl})",
 	time = { h = "{h}h {m}m", m = "{m}m" },
 }

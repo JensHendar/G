@@ -67,6 +67,8 @@ Mappnamnet kan skilja sig åt mellan versioner. Använd samma mapp som dina andr
 ## Bra att veta
 
 - `## Interface: 16001` är Forever-betans värde. Det är inte bekräftat för releaseversionen. Kontrollera med `/dump select(4, GetBuildInfo())` i spelet och uppdatera `.toc` vid behov. `11509` (Classic Era) står också med så att addonet kan testas där.
+- Forever (precis som Midnight) stänger stridsloggen för addons. Kills räknas därför bara för fiender som slogs mot dig och som du ser dö (som target eller via namnplåt), eller vars lik du lootar. Den som dödade dig är den fiende som senast hade dig som target.
+- Inne i dungeons och raids är vissa värden låsta, och addon-meddelanden är inte tillåtna. Där delas inga namn, och tillfällen när du nästan dör räknas inte.
 - Namnen visas bara där spelet visar föremålsnamn i text: tooltips och chatt. Väskor och karaktärsfönstret visar inga namn alls.
 - Allt sparas per karaktär (`SoulboundChronicleCharDB`). Föremål du redan har när du installerar får ursprunget "fanns hos dig innan krönikan började".
 
