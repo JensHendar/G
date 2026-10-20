@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14181f">
+<title>Sikte – kontroll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap">
+<link rel="stylesheet" href="sikte.css">
+</head>
+<body class="pad">
+
+<section class="setup" id="setup">
+  <h1>Sikte</h1>
+  <p class="lead">Telefonen blir ditt vapen.</p>
+  <label>Ditt namn <input id="name" maxlength="14" autocomplete="nickname"></label>
+  <label>Rumskod <input id="room" maxlength="5" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
+  <fieldset>
+    <legend>Grepp</legend>
+    <label class="choice"><input type="radio" name="grip" value="pointer" checked> Pekare<small>Skärmen uppåt, toppen mot TV:n</small></label>
+    <label class="choice"><input type="radio" name="grip" value="camera"> Kamera<small>Baksidan mot TV:n, som när du fotar</small></label>
+  </fieldset>
+  <button class="btn big" id="connect">Anslut</button>
+  <p class="error" id="error" role="alert"></p>
+  <p class="hint">Kräver rörelsesensorer och att sidan öppnas via https.</p>
+</section>
+
+<section class="play" id="play" hidden>
+  <header class="pad-bar">
+    <span class="me"><i id="me-dot"></i><span id="me-name"></span></span>
+    <span id="pad-time"></span>
+    <span class="score" id="pad-score">0</span>
+  </header>
+  <button class="fire" id="fire" aria-label="Skjut">
+    <span class="fire-label">SKJUT</span>
+    <span class="fire-pop" id="fire-pop"></span>
+  </button>
+  <div class="pad-tools">
+    <button class="btn" id="center">◎ Centrera</button>
+    <label class="sens">Känslighet <input type="range" id="sens" min="20" max="90" step="1" value="45"></label>
+  </div>
+  <p class="pad-msg" id="pad-msg">Rikta telefonen mot mitten av skärmen och tryck Centrera.</p>
+</section>
+
+<section class="lost" id="lost" hidden>
+  <p id="lost-msg">Anslutningen bröts.</p>
+  <button class="btn big" id="reconnect">Anslut igen</button>
+</section>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="kontroll.js"></script>
+</body>
+</html>

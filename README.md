@@ -28,3 +28,30 @@ Plain HTML, CSS and JavaScript with no build step. Open `index.html` in a browse
 - Name your realm, sound effects with a mute toggle, offline earnings (50%, up to 8 hours), autosave to `localStorage`.
 
 Saves from the earlier multi-theme version's Medieval Kingdom are migrated automatically.
+
+# Sikte (fristående demo)
+
+En skjutbana i mappen `sikte/` där telefonen är vapnet. Skärmen (dator eller TV) visar banan och en QR-kod. Spelarna skannar koden, och telefonens gyroskop styr ett sikte på skärmen. Flera telefoner kan spela samtidigt, med var sitt sikte och var sin färg.
+
+- `sikte/index.html` + `skarm.js`: skärmen. Visar banan, QR-koden och poängen.
+- `sikte/kontroll.html` + `kontroll.js`: telefonen. Läser rörelsesensorerna och har en stor SKJUT-knapp.
+- `sikte/sikte.css`: utseendet för båda sidorna.
+
+## Så spelar man
+
+1. Öppna `sikte/index.html` på datorn eller TV:n.
+2. Skanna QR-koden med telefonen, skriv ett namn och tryck **Anslut**. På iPhone måste du tillåta rörelsesensorer.
+3. Rikta telefonen mot mitten av skärmen och tryck **Centrera**. Gör om det om siktet glider iväg.
+4. Skjut på startmålet. En runda är 60 sekunder:
+   - röda tavlor ger 10/25/50 poäng beroende på hur nära mitten du träffar,
+   - små blå tavlor ger 75,
+   - snabba guldmål ger 150,
+   - bomber ger −100.
+
+Du kan välja grepp. **Pekare** betyder att skärmen är uppåt och toppen av telefonen pekar mot TV:n. **Kamera** betyder att telefonens baksida pekar mot TV:n. **Känslighet** styr hur mycket du behöver vrida telefonen. Du kan också testa utan telefon genom att klicka med musen på skärmen.
+
+## Teknik
+
+- Telefonen och skärmen pratar direkt med varandra via WebRTC med [PeerJS](https://peerjs.com). PeerJS gratis molnserver används bara för att koppla ihop dem. Ingen egen server behövs.
+- Telefonen räknar ut åt vilket håll den pekar från `deviceorientation` och skickar siktet till skärmen ungefär 60 gånger i sekunden, normaliserat till −1…1 jämfört med centrerat läge.
+- **Sidorna måste ligga på https** för att telefonens sensorer ska fungera, till exempel på GitHub Pages: Settings → Pages → välj gren. Då blir adressen `https://<användare>.github.io/<repo>/sikte/`. Det fungerar inte att öppna filen direkt från disken.
