@@ -40,6 +40,22 @@ local L = {
 		renameReset = "%s has its old name back.",
 		bindingHeader = "Soulbound Chronicle",
 		bindingRename = "Rename hovered item",
+		settings = "Settings",
+		search = "Search",
+		subtitle = "{player} · Level {level}",
+		entries = "{count} entries",
+		entriesOne = "1 entry",
+		showing = "Showing {shown} of {count}",
+		itemCount = "{count} remembered items",
+		itemCountOne = "1 remembered item",
+		renameHint = "Right-click an item to rename it.",
+		noMatches = "Nothing matches your search.",
+		options = {
+			{ key = "autonames", label = "Automatic names", text = "Give your gear new names based on its type, quality and deeds." },
+			{ key = "rares", label = "Names for blue and purple items", text = "Also rename rare and epic gear. Turn off to keep their real names." },
+			{ key = "others", label = "Names from other players", text = "Show the names other players with the addon gave their items." },
+			{ key = "tooltip", label = "Stories in tooltips", text = "Show where an item came from and what it has been through." },
+		},
 	},
 
 	origin = {

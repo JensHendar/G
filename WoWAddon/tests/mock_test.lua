@@ -28,7 +28,9 @@ local function stub()
       if e == "COMBAT_LOG_EVENT_UNFILTERED" then error("ADDON_ACTION_FORBIDDEN: " .. e) end
       registered[e] = true
     end end
-    if k == "GetStringHeight" or k == "GetVerticalScrollRange" then return function() return 100 end end
+    if k == "GetStringHeight" or k == "GetVerticalScrollRange" or k == "GetStringWidth" then return function() return 100 end end
+    if k == "GetChecked" then return function(self) return self.checked end end
+    if k == "SetChecked" then return function(self, v) self.checked = v end end
     if k == "IsShown" then return function(self) return self.shown end end
     if k == "Show" then return function(self) self.shown = true end end
     if k == "Hide" then return function(self) self.shown = false end end
@@ -38,7 +40,7 @@ local function stub()
   end })
 end
 local frames = {}
-function CreateFrame() local f = stub(); table.insert(frames, f); return f end
+function CreateFrame(kind, name) local f = stub(); f.kind = kind; table.insert(frames, f); if name then _G[name] = f end return f end
 local timers = {}
 C_Timer = {
   After = function(delay, f) table.insert(timers, { due = now + delay, fn = f }) end,
@@ -292,6 +294,35 @@ fire("CHAT_MSG_ADDON", "SBChronicle", "Q\t100:0:0", "WHISPER", "Kalle-Realm")
 wait(1)
 check(#sent == 0, "no addon messages are sent inside instances")
 INSTANCE, HEALTH = false, nil
+
+-- The window: pages, search and settings.
+slash("")
+local win = SoulboundChronicleFrame
+check(win and win.shown, "the chronicle window opens")
+check(win.status.text and win.status.text:find("entries"), "chronicle page shows an entry count: " .. tostring(win.status.text))
+SoulboundChronicleSearch.text = "hogger"
+SoulboundChronicleSearch.scripts.OnTextChanged(SoulboundChronicleSearch)
+check(win.status.text == "1 entries" or win.status.text:find("Showing 1 of"), "search filters the chronicle: " .. tostring(win.status.text))
+SoulboundChronicleSearch.text = "zzzz"
+SoulboundChronicleSearch.scripts.OnTextChanged(SoulboundChronicleSearch)
+check(win.empty.text == "Nothing matches your search.", "an empty search says so")
+SoulboundChronicleSearch.text = ""
+SoulboundChronicleSearch.scripts.OnTextChanged(SoulboundChronicleSearch)
+slash("items")
+check(win.status.text:find("remembered items", 1, true), "items page lists items: " .. tostring(win.status.text))
+local itemRow
+for _, f in ipairs(frames) do if f.kind == "Button" and f.scripts.OnClick and f.name then itemRow = f end end
+check(itemRow ~= nil, "item cards are built")
+popup = nil
+itemRow.scripts.OnClick(itemRow)
+check(popup ~= nil, "right-clicking an item card opens the rename box")
+slash("") -- toggles closed only when on the same page; here it switches page
+local checks = {}
+for _, f in ipairs(frames) do if f.kind == "CheckButton" then table.insert(checks, f) end end
+check(#checks == 4, "settings page has four options")
+for _, c in ipairs(checks) do if c.key == "rares" then c.checked = false; c.scripts.OnClick(c) end end
+check(ns.db.rares == false, "settings checkbox turns blue/purple names off")
+ns.db.rares = true
 
 -- UI and other commands do not crash.
 slash("")
