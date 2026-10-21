@@ -55,7 +55,12 @@ local L = {
 			{ key = "rares", label = "Names for blue and purple items", text = "Also rename rare and epic gear. Turn off to keep their real names." },
 			{ key = "others", label = "Names from other players", text = "Show the names other players with the addon gave their items." },
 			{ key = "tooltip", label = "Stories in tooltips", text = "Show where an item came from and what it has been through." },
+			{ key = "identify", label = "Unidentified items", text = "Some looted green, blue and purple items arrive unidentified. Take them to any innkeeper to learn their name and legend." },
 		},
+		unknownYet = "You don't know what it is yet. Take it to an innkeeper first.",
+		identifiedBy = "Identified by %s",
+		thanks = "Thank you",
+		andMore = "...and {count} more. Your chronicle has them all.",
 	},
 
 	origin = {
@@ -233,6 +238,89 @@ local L = {
 			"Acquired {link}. {origin}",
 		},
 		renamed = "{old} shall henceforth be known as {new}.",
+		found = {
+			"Found an unidentified {noun} in {place}. Nobody knows what it is yet.",
+			"Found an unidentified {noun} in {place}.",
+		},
+		identified = {
+			"{npc} identified {new} in {place}.",
+			"{npc} recognized {new} at once.",
+		},
+	},
+
+	identify = {
+		name = "Unidentified {noun}",
+		hint = "An innkeeper might know what it is.",
+		identifiedBy = "Identified by {npc}, {date}.",
+		mystery = {
+			weapon = {
+				"Strange runes run along it. Someone learned might read them.",
+				"Its balance is odd, as if it was made for someone else.",
+				"Old notches cover it. It has seen more fights than you.",
+			},
+			armor = {
+				"Faded markings cover it, half worn away.",
+				"It smells of old smoke and older battles.",
+				"A crest has been scratched off it, on purpose.",
+			},
+			jewelry = {
+				"It is warm to the touch, though it should not be.",
+				"Something is engraved on the inside, too small to read.",
+			},
+		},
+		-- What the innkeeper says when they recognise it.
+		quote = {
+			"{npc} squints at it for a long moment. \"Well, I'll be. That's {name}.\"",
+			"{npc} wipes it clean with a bar towel. \"{name}. My grandfather told stories about this one.\"",
+			"{npc} sets down a mug and leans closer. \"Ah. {name}. Keep it close.\"",
+			"{npc} lowers their voice. \"{name}. Where did you find that?\"",
+		},
+		-- Legends are built from three parts: origin, history and fate.
+		origin = {
+			"Forged in {forge} for {owner}.",
+			"Made in {forge} for {owner}.",
+			"Crafted long ago in {forge}, by hands no one remembers.",
+		},
+		history = {
+			"Its owner fell at {fall}, and it was lost for years.",
+			"It changed hands {count} times before it found you.",
+			"It was once lost in a card game in Booty Bay.",
+			"It spent a decade at the bottom of a lake.",
+			"It was carried to {fall} and back again.",
+			"It was stolen twice, and returned once.",
+		},
+		fate = {
+			"Now it is yours.",
+			"Some say it brings luck. Others say the opposite.",
+			"It seems glad to be carried again.",
+			"It hums faintly when danger is near.",
+			"Its last owner wanted it buried with them. Clearly, that did not happen.",
+		},
+		forges = {
+			"the foothills of Dun Morogh", "the fires of Blackrock Mountain", "a forgotten workshop in Stormwind",
+			"the elven halls of Darnassus", "a troll village in Stranglethorn", "the ruins of Lordaeron",
+			"a smithy in Lakeshire", "the depths of Gnomeregan", "the high mesas of Thunder Bluff",
+			"the deserts of Tanaris", "the shadow of Ironforge", "a camp in the Barrens",
+		},
+		owners = {
+			"a captain of the Ironforge guard", "a Defias smuggler", "a priestess of Elune",
+			"a wandering tauren hunter", "a goblin merchant prince", "a Scarlet Crusader",
+			"a dwarven explorer", "an orcish grunt", "a forgotten king's bodyguard",
+			"a gnomish inventor", "a Forsaken apothecary", "a night elf sentinel",
+		},
+		falls = {
+			"Thelsamar", "the Dark Portal", "Hillsbrad", "Darkshore", "Stratholme",
+			"Southshore", "the Crossroads", "Sentinel Hill", "Tarren Mill", "Astranaar",
+		},
+		nouns = {
+			sword = "Sword", axe = "Axe", mace = "Mace", dagger = "Dagger", fist = "Fist Weapon",
+			polearm = "Polearm", staff = "Staff", bow = "Bow", gun = "Gun", crossbow = "Crossbow",
+			wand = "Wand", thrown = "Throwing Weapon", fishing = "Fishing Pole", head = "Helm",
+			neck = "Necklace", shoulder = "Shoulderguards", chest = "Chestpiece", waist = "Belt",
+			legs = "Leggings", feet = "Boots", wrist = "Bracers", hands = "Gloves", finger = "Ring",
+			trinket = "Trinket", back = "Cloak", shield = "Shield", holdable = "Off-hand",
+			shirt = "Shirt", tabard = "Tabard", generic = "Item",
+		},
 	},
 
 	cls = {

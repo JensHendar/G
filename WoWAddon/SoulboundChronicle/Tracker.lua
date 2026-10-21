@@ -183,6 +183,11 @@ local function newRecord(entry)
 	rec.o = currentOrigin() or { k = recentLogin and "before" or "found" }
 
 	if rec.o.k ~= "before" then
+		ns.Identify.Roll(rec, entry.link)
+	end
+	if rec.unid then
+		ns.Journal.Add("found", { noun = ns.Identify.Noun(rec):lower() })
+	elseif rec.o.k ~= "before" then
 		local _, _, quality = ns.GetItemInfo(entry.link or entry.id)
 		if quality and quality >= 3 then
 			ns.Journal.Add("item", {

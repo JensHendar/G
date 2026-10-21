@@ -75,6 +75,7 @@ ns.On("ADDON_LOADED", function(name)
 		tooltip = true,
 		autonames = true,
 		rares = true,
+		identify = true,
 		others = true,
 	})
 	SoulboundChronicleCharDB = defaults(SoulboundChronicleCharDB or {}, {

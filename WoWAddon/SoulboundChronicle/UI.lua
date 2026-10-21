@@ -38,6 +38,8 @@ local ICONS = {
 	neardeath = "Interface\\Icons\\Spell_Holy_SealOfSacrifice",
 	item = "Interface\\Icons\\INV_Misc_Bag_10",
 	renamed = "Interface\\Icons\\INV_Misc_Note_01",
+	found = "Interface\\Icons\\INV_Misc_QuestionMark",
+	identified = "Interface\\Icons\\INV_Scroll_03",
 }
 local HEADER_ICON = "Interface\\Icons\\INV_Misc_Book_09"
 
@@ -614,6 +616,117 @@ end
 ns.Listen("JOURNAL_CHANGED", function() if mode == "chronicle" then UI.Refresh() end end)
 ns.Listen("ITEMS_CHANGED", function() if mode == "items" then UI.Refresh() end end)
 ns.Listen("NAMES_CHANGED", function() if mode ~= "chronicle" then UI.Refresh() end end)
+
+---------------------------------------------------------------------------
+-- Reveal window: shown when an innkeeper identifies items
+---------------------------------------------------------------------------
+
+local REVEAL_WIDTH = 420
+local reveal
+
+local function newRevealRow(parent)
+	local row = CreateFrame("Frame", nil, parent)
+	row.iconBorder = fill(row, C.border, "ARTWORK")
+	row.iconBorder:SetSize(38, 38)
+	row.iconBorder:SetPoint("TOPLEFT", 0, 0)
+	row.icon = row:CreateTexture(nil, "OVERLAY")
+	row.icon:SetSize(36, 36)
+	row.icon:SetPoint("CENTER", row.iconBorder)
+	row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	local width = REVEAL_WIDTH - PAD * 2 - 48
+	row.name = text(row, "GameFontNormalLarge")
+	row.name:SetPoint("TOPLEFT", row.iconBorder, "TOPRIGHT", 10, -1)
+	row.name:SetWidth(width)
+	row.quote = text(row, "GameFontHighlightSmall", C.text)
+	row.quote:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -5)
+	row.quote:SetWidth(width)
+	row.quote:SetSpacing(2)
+	row.legend = text(row, "GameFontHighlightSmall", C.dim)
+	row.legend:SetPoint("TOPLEFT", row.quote, "BOTTOMLEFT", 0, -5)
+	row.legend:SetWidth(width)
+	row.legend:SetSpacing(2)
+	return row
+end
+
+function UI.ShowReveal(npc, items, maxShown)
+	local L = ns.L()
+	if not reveal then
+		reveal = CreateFrame("Frame", "SoulboundChronicleReveal", UIParent)
+		reveal:SetWidth(REVEAL_WIDTH)
+		reveal:SetPoint("TOP", 0, -140)
+		reveal:SetFrameStrata("DIALOG")
+		reveal:SetClampedToScreen(true)
+		reveal:SetMovable(true)
+		reveal:EnableMouse(true)
+		reveal:RegisterForDrag("LeftButton")
+		reveal:SetScript("OnDragStart", reveal.StartMoving)
+		reveal:SetScript("OnDragStop", reveal.StopMovingOrSizing)
+		table.insert(UISpecialFrames, "SoulboundChronicleReveal")
+		fill(reveal, C.bg):SetAllPoints()
+		border(reveal, C.border)
+
+		local scroll = reveal:CreateTexture(nil, "ARTWORK")
+		scroll:SetSize(28, 28)
+		scroll:SetPoint("TOPLEFT", PAD, -12)
+		scroll:SetTexture(ICONS.identified)
+		scroll:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+		reveal.title = text(reveal, "GameFontNormalLarge", C.gold)
+		reveal.title:SetPoint("LEFT", scroll, "RIGHT", 10, 0)
+		hline(reveal, -50)
+
+		reveal.rows = {}
+		reveal.more = text(reveal, "GameFontDisableSmall")
+		reveal.more:SetWidth(REVEAL_WIDTH - PAD * 2)
+		reveal.ok = CreateFrame("Button", nil, reveal, "UIPanelButtonTemplate")
+		reveal.ok:SetSize(120, 24)
+		reveal.ok:SetPoint("BOTTOM", 0, 12)
+		reveal.ok:SetScript("OnClick", function() reveal:Hide() end)
+	end
+
+	reveal.title:SetText(L.ui.identifiedBy:format(npc))
+	reveal.ok:SetText(L.ui.thanks)
+	for _, row in ipairs(reveal.rows) do row:Hide() end
+
+	local y = 62
+	for i, item in ipairs(items) do
+		if i > maxShown then break end
+		local row = reveal.rows[i] or newRevealRow(reveal)
+		reveal.rows[i] = row
+		local _, _, _, _, icon = ns.GetItemInfoInstant(item.rec.id)
+		row.icon:SetTexture(icon or ICONS.found)
+		local _, _, quality = ns.GetItemInfo(item.link or item.rec.id)
+		local r, g, b = 1, 1, 1
+		if quality and getQualityColor then r, g, b = getQualityColor(quality) end
+		row.iconBorder:SetColorTexture(r, g, b, 0.9)
+		row.name:SetText(item.name)
+		row.name:SetTextColor(r, g, b)
+		row.quote:SetText(item.quote)
+		row.legend:SetText(item.legend)
+		local height = math.max(40, row.name:GetStringHeight() + row.quote:GetStringHeight()
+			+ row.legend:GetStringHeight() + 14)
+		row:ClearAllPoints()
+		row:SetPoint("TOPLEFT", PAD, -y)
+		row:SetSize(REVEAL_WIDTH - PAD * 2, height)
+		row:Show()
+		y = y + height + 14
+	end
+
+	if #items > maxShown then
+		reveal.more:SetText(ns.Stories.Format(L.ui.andMore, { count = #items - maxShown }))
+		reveal.more:ClearAllPoints()
+		reveal.more:SetPoint("TOPLEFT", PAD, -y)
+		reveal.more:Show()
+		y = y + 20
+	else
+		reveal.more:Hide()
+	end
+
+	reveal:SetHeight(y + 46)
+	reveal:Show()
+	if PlaySound and SOUNDKIT and SOUNDKIT.IG_QUEST_LIST_COMPLETE then
+		pcall(PlaySound, SOUNDKIT.IG_QUEST_LIST_COMPLETE)
+	end
+end
 
 ---------------------------------------------------------------------------
 -- Export window: plain text to copy out of the game

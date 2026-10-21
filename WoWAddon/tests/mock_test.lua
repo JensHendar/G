@@ -113,7 +113,7 @@ function GetInventoryItemLink(unit, s) if unit == "player" then return equip[s] 
 local level = 10
 local target
 function UnitGUID(u) if u == "player" then return "P" end if u == "target" then return target and target.guid end end
-function UnitName(u) if u == "player" then return "Jens" end if u == "targettarget" then return target and target.attacking and "Jens" end return target and target.name end
+function UnitName(u) if u == "player" then return "Jens" end if u == "npc" then return NPC_NAME end if u == "targettarget" then return target and target.attacking and "Jens" end return target and target.name end
 function GetUnitName(u) return UnitName(u) end
 function UnitLevel(u) if u == "player" then return level end return target and target.level end
 function UnitIsPlayer(u) return u == "player" end
@@ -319,10 +319,43 @@ check(popup ~= nil, "right-clicking an item card opens the rename box")
 slash("") -- toggles closed only when on the same page; here it switches page
 local checks = {}
 for _, f in ipairs(frames) do if f.kind == "CheckButton" then table.insert(checks, f) end end
-check(#checks == 4, "settings page has four options")
+check(#checks == 5, "settings page has five options")
 for _, c in ipairs(checks) do if c.key == "rares" then c.checked = false; c.scripts.OnClick(c) end end
 check(ns.db.rares == false, "settings checkbox turns blue/purple names off")
 ns.db.rares = true
+
+-- Unidentified items and innkeepers.
+local realRandom = math.random
+math.random = function(a) if a then return a end return 0 end -- every roll succeeds
+target = { guid = "L1", name = "Defias Pillager", level = 15, dead = true }
+fire("LOOT_OPENED")
+bags[2][1] = 102; scan()
+fire("LOOT_CLOSED")
+math.random = realRandom
+local unid = rec("b:2:1")
+check(unid.unid and name("b:2:1", link(102)) == "Unidentified Leggings", "looted green can arrive unidentified: " .. name("b:2:1", link(102)))
+resetTooltip()
+hooks.SetBagItem(GameTooltip, 2, 1)
+local tt = table.concat(ttLines, "\n")
+check(GameTooltipTextLeft1.text == "Unidentified Leggings" and tt:find("innkeeper might know", 1, true) and not tt:find("Originally", 1, true), "tooltip hides the real name and hints at innkeepers")
+_, out = filter(nil, "CHAT_MSG_SAY", "look " .. link(102), "Jens")
+check(out:find("[Unidentified Leggings]", 1, true), "own chat links stay unidentified")
+check(ns.char.journal[#ns.char.journal].k == "found", "finding it goes in the chronicle")
+slash("name Fancy Pants")
+check(unid.custom == nil, "unidentified items cannot be renamed")
+NPC_NAME = "Smith Argus"; fire("GOSSIP_SHOW")
+check(unid.unid, "an ordinary NPC cannot identify it")
+NPC_NAME = "Innkeeper Farley"; fire("GOSSIP_SHOW")
+check(not unid.unid and unid.idBy == "Innkeeper Farley", "an innkeeper identifies it")
+local revealed = name("b:2:1", link(102))
+check(revealed ~= "Unidentified Leggings" and SoulboundChronicleReveal and SoulboundChronicleReveal.shown, "the reveal window shows its name: " .. revealed)
+local story = table.concat(ns.Stories.ItemLines(unid, link(102)), "\n")
+check(story:find("Identified by Innkeeper Farley", 1, true) and story:find("Originally: Feral Leggings", 1, true), "its story has a legend and who identified it")
+print("    legend: " .. ns.Identify.Legend(unid))
+print("    " .. chat[#chat])
+local entry = ns.char.journal[#ns.char.journal]
+check(entry.k == "identified" and ns.Stories.Entry(entry):find(revealed, 1, true), "identification goes in the chronicle: " .. ns.Stories.Entry(entry))
+slash("") -- open the window to show the new entry types
 
 -- UI and other commands do not crash.
 slash("")

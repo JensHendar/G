@@ -29,6 +29,16 @@ Vapen och rustning av alla kvaliteter upp till lila (epic) får nya namn. Blå o
 
 Namnen visas i tooltipen (med originalnamnet under), i chattlänkar och på föremålssidan i addonets fönster.
 
+### Oidentifierade föremål
+
+Ibland är ett föremål du lootar oidentifierat. Det gäller 10 % av gröna, 25 % av blå och 50 % av lila föremål från fiender, fiske och kistor.
+
+- **Namnet döljs.** Det heter bara *Unidentified Sword* och har en mystisk rad i tooltipen. Statsen syns som vanligt.
+- **Ta det till en innkeeper.** När du pratar med vilken innkeeper som helst identifieras alla oidentifierade föremål du bär. En ruta visar vad de var, med en replik från innkeepern och föremålets **legend**: var det smiddes, vem som ägde det och vad det har varit med om.
+- **Identifierade föremål får finare namn,** minst på blå nivå.
+- **Andra med addonet** ser också ditt föremål som oidentifierat tills du har identifierat det.
+- Oidentifierade föremål kan inte döpas om. Hela funktionen kan stängas av under Settings.
+
 ### Ser andra mina namn?
 
 Ja, om de också har addonet. Addonen skickar dolda meddelanden till varandra:
@@ -86,6 +96,7 @@ lua5.1 WoWAddon/tests/mock_test.lua
 | `Tracker.lua` | Följer föremål mellan väskor, bank och utrustning, bestämmer ursprung och räknar statistik |
 | `Journal.lua` | Krönikans händelser |
 | `Names.lua` | Genererade, förtjänade och egna namn |
+| `Identify.lua` | Oidentifierade föremål, innkeepers och legender |
 | `Comm.lua` | Delar namn med andra spelare och byter namn i chattlänkar |
 | `Stories.lua` | Gör om sparade fakta till text |
 | `Locales.lua` | Alla texter och namnord |

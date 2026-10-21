@@ -45,6 +45,7 @@ local function itemKind(itemID)
 	if classID == 2 then return WEAPONS[subclassID] or "generic", true end
 	return SLOTS[equipLoc] or "generic", false
 end
+N.Kind = itemKind
 
 local function quality(rec, link)
 	local _, _, q = ns.GetItemInfo(link or rec.id)
@@ -207,13 +208,15 @@ end
 -- name.
 function N.Get(rec, link)
 	local L = ns.L()
+	if ns.Identify.IsHidden(rec) then return ns.Identify.Name(rec) end
 	if rec.custom then return rec.custom, { L.names.why.custom } end
 	if not ns.db.autonames then return end
 	local q = quality(rec, link)
 	if not q or q > MAX_QUALITY or (q >= RARE_QUALITY and not ns.db.rares) then return end
 	local name, reasons = earned(rec, L)
 	if name then return name, reasons end
-	return generated(rec, link, q, L)
+	-- Identified items were worth a scholar's eye: name them a tier up.
+	return generated(rec, link, rec.idBy and math.max(q, RARE_QUALITY) or q, L)
 end
 
 -- Notices when an item has earned a new name and announces it.
@@ -283,6 +286,10 @@ function N.RenameHovered(newName)
 	local h = currentHovered()
 	if not h then return end
 	local L = ns.L()
+	if ns.Identify.IsHidden(h.rec) then
+		ns.Print(L.ui.unknownYet)
+		return
+	end
 	local old = displayName(h.rec, h.link)
 	if newName:lower() == "reset" then
 		h.rec.custom = nil
@@ -328,6 +335,10 @@ StaticPopupDialogs.SOULBOUNDCHRONICLE_RENAME = {
 function N.PromptRename()
 	local h = currentHovered()
 	if not h then return end
+	if ns.Identify.IsHidden(h.rec) then
+		ns.Print(ns.L().ui.unknownYet)
+		return
+	end
 	N.pendingName = displayName(h.rec, h.link)
 	StaticPopup_Show("SOULBOUNDCHRONICLE_RENAME", ns.L().ui.renamePrompt:format(N.pendingName))
 end

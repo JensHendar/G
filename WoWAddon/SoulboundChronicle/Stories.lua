@@ -59,11 +59,21 @@ function S.ItemLines(rec, link)
 	local L = ns.L()
 	local lines = {}
 
+	if ns.Identify.IsHidden(rec) then
+		for _, line in ipairs(ns.Identify.Mystery(rec)) do table.insert(lines, line) end
+		table.insert(lines, S.Origin(rec))
+		return lines
+	end
+
 	local name, reasons = ns.Names.Get(rec, link)
 	if name then
 		local original = link and link:match("|h%[(.-)%]|h") or ns.GetItemInfo(rec.id)
 		if original then table.insert(lines, fmt(L.names.originally, { name = original })) end
 		for _, reason in ipairs(reasons or {}) do table.insert(lines, reason) end
+	end
+	if rec.idBy then
+		table.insert(lines, ns.Identify.Legend(rec))
+		table.insert(lines, fmt(L.identify.identifiedBy, { npc = rec.idBy, date = S.Date(rec.idT) }))
 	end
 
 	table.insert(lines, S.Origin(rec))
@@ -106,6 +116,8 @@ function S.Entry(e)
 		link = e.link,
 		old = e.old,
 		new = e.new,
+		npc = e.npc,
+		noun = e.noun,
 		origin = e.rec and S.Origin(e.rec) or "",
 	})
 end
