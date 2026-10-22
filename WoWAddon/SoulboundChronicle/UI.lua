@@ -41,7 +41,7 @@ local ICONS = {
 	found = "Interface\\Icons\\INV_Misc_QuestionMark",
 	identified = "Interface\\Icons\\INV_Scroll_03",
 }
-local HEADER_ICON = "Interface\\Icons\\INV_Misc_Book_09"
+local HEADER_ICON = "Interface\\AddOns\\SoulboundChronicle\\Media\\Icon"
 
 local getQualityColor = (C_Item and C_Item.GetItemQualityColor) or GetItemQualityColor
 
@@ -478,17 +478,14 @@ local function build()
 	headerLine:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
 	headerLine:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
 
-	local iconBorder = fill(frame, C.border, "ARTWORK")
-	iconBorder:SetSize(42, 42)
-	iconBorder:SetPoint("TOPLEFT", PAD, -11)
+	-- The addon's own icon brings its own gold frame.
 	local icon = frame:CreateTexture(nil, "OVERLAY")
-	icon:SetSize(40, 40)
-	icon:SetPoint("CENTER", iconBorder)
+	icon:SetSize(44, 44)
+	icon:SetPoint("TOPLEFT", PAD - 1, -10)
 	icon:SetTexture(HEADER_ICON)
-	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
 	frame.title = text(frame, "GameFontNormalLarge", C.gold)
-	frame.title:SetPoint("TOPLEFT", iconBorder, "TOPRIGHT", 12, -4)
+	frame.title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 11, -5)
 	frame.title:SetText(L.ui.title)
 	frame.subtitle = text(frame, "GameFontHighlightSmall", C.dim)
 	frame.subtitle:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -4)

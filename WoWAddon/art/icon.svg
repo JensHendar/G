@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#3a2058"/>
+      <stop offset="0.55" stop-color="#1a0f28"/>
+      <stop offset="1" stop-color="#07040b"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1b0"/>
+      <stop offset="0.35" stop-color="#e2b54a"/>
+      <stop offset="0.7" stop-color="#9a6a1c"/>
+      <stop offset="1" stop-color="#f0cf6e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#c79bff" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#8a4dff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#5a1fd0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leather" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8e4824"/>
+      <stop offset="0.5" stop-color="#5c2a12"/>
+      <stop offset="1" stop-color="#2e1407"/>
+    </linearGradient>
+    <linearGradient id="pages" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f4e8c8"/>
+      <stop offset="1" stop-color="#bfa978"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8e9aa8"/>
+      <stop offset="0.48" stop-color="#f4f8ff"/>
+      <stop offset="0.52" stop-color="#b8c4d2"/>
+      <stop offset="1" stop-color="#5d6876"/>
+    </linearGradient>
+    <linearGradient id="grip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2a140a"/>
+      <stop offset="0.5" stop-color="#6b3a1e"/>
+      <stop offset="1" stop-color="#2a140a"/>
+    </linearGradient>
+    <radialGradient id="gem" cx="40%" cy="35%" r="65%">
+      <stop offset="0" stop-color="#f3e4ff"/>
+      <stop offset="0.35" stop-color="#b47cff"/>
+      <stop offset="1" stop-color="#4a118f"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity="0.7"/>
+    </filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <!-- Frame -->
+  <rect x="8" y="8" width="496" height="496" rx="64" fill="url(#bg)"/>
+  <circle cx="256" cy="250" r="230" fill="url(#glow)"/>
+
+  <!-- Sparkles -->
+  <g fill="#e6d2ff">
+    <circle cx="112" cy="132" r="5" opacity="0.9"/>
+    <circle cx="408" cy="176" r="4" opacity="0.8"/>
+    <circle cx="398" cy="380" r="5" opacity="0.7"/>
+    <circle cx="120" cy="392" r="3.5" opacity="0.7"/>
+    <path d="M150 92 l5 15 15 5 -15 5 -5 15 -5 -15 -15 -5 15 -5z" opacity="0.9"/>
+    <path d="M378 110 l4 11 11 4 -11 4 -4 11 -4 -11 -11 -4 11 -4z" opacity="0.85"/>
+  </g>
+
+  <!-- Book -->
+  <g transform="rotate(-9 256 262)" filter="url(#shadow)">
+    <!-- page block (thickness) -->
+    <rect x="160" y="128" width="222" height="282" rx="12" fill="url(#pages)"/>
+    <g stroke="#a89060" stroke-width="2" opacity="0.6">
+      <line x1="370" y1="146" x2="370" y2="396"/><line x1="376" y1="146" x2="376" y2="396"/>
+      <line x1="176" y1="400" x2="368" y2="400"/><line x1="176" y1="405" x2="368" y2="405"/>
+    </g>
+    <!-- cover -->
+    <rect x="140" y="112" width="222" height="284" rx="14" fill="url(#leather)" stroke="#1c0b04" stroke-width="4"/>
+    <!-- spine -->
+    <rect x="140" y="112" width="30" height="284" rx="12" fill="#2b1206" opacity="0.75"/>
+    <rect x="170" y="112" width="3" height="284" fill="#b07a3c" opacity="0.5"/>
+    <!-- tooled border -->
+    <rect x="186" y="132" width="158" height="244" rx="6" fill="none" stroke="url(#gold)" stroke-width="5"/>
+    <rect x="196" y="142" width="138" height="224" rx="4" fill="none" stroke="#e2b54a" stroke-width="1.5" opacity="0.6"/>
+    <!-- corner fittings -->
+    <g fill="url(#gold)" stroke="#5a3a0a" stroke-width="2">
+      <path d="M362 112 h-44 l44 44 z"/>
+      <path d="M362 396 h-44 l44 -44 z"/>
+      <path d="M170 112 h40 l-40 40 z"/>
+      <path d="M170 396 h40 l-40 -40 z"/>
+    </g>
+    <!-- bookmark ribbon -->
+    <path d="M300 396 v52 l-12 -12 -12 12 v-52 z" fill="#8f1d2c" stroke="#4a0a12" stroke-width="2"/>
+  </g>
+
+  <!-- Sword, in front of the book -->
+  <g filter="url(#shadow)">
+    <!-- blade glow -->
+    <path d="M256 44 L284 92 L280 352 L232 352 L228 92 Z" fill="#b98cff" opacity="0.55" filter="url(#soft)"/>
+    <!-- blade -->
+    <path d="M256 50 L278 94 L274 350 L238 350 L234 94 Z" fill="url(#blade)" stroke="#2c3440" stroke-width="3" stroke-linejoin="round"/>
+    <line x1="256" y1="62" x2="256" y2="344" stroke="#ffffff" stroke-width="2" opacity="0.7"/>
+    <!-- rune on blade -->
+    <path d="M249 170 l7 -10 7 10 -7 10 z M249 220 l7 -10 7 10 -7 10 z" fill="#b47cff" opacity="0.9"/>
+    <!-- guard -->
+    <path d="M168 346 Q256 330 344 346 Q352 352 344 360 Q256 372 168 360 Q160 352 168 346 Z" fill="url(#gold)" stroke="#5a3a0a" stroke-width="3"/>
+    <circle cx="168" cy="353" r="9" fill="url(#gold)" stroke="#5a3a0a" stroke-width="2.5"/>
+    <circle cx="344" cy="353" r="9" fill="url(#gold)" stroke="#5a3a0a" stroke-width="2.5"/>
+    <circle cx="256" cy="353" r="11" fill="url(#gem)" stroke="#5a3a0a" stroke-width="2.5"/>
+    <!-- grip -->
+    <rect x="242" y="366" width="28" height="70" rx="6" fill="url(#grip)" stroke="#1a0a04" stroke-width="3"/>
+    <g stroke="#c08a48" stroke-width="3" opacity="0.8">
+      <line x1="244" y1="380" x2="268" y2="372"/><line x1="244" y1="396" x2="268" y2="388"/>
+      <line x1="244" y1="412" x2="268" y2="404"/><line x1="244" y1="428" x2="268" y2="420"/>
+    </g>
+    <!-- pommel with soul gem -->
+    <circle cx="256" cy="452" r="22" fill="url(#gold)" stroke="#5a3a0a" stroke-width="3"/>
+    <circle cx="256" cy="452" r="13" fill="url(#gem)"/>
+    <circle cx="256" cy="452" r="26" fill="#b47cff" opacity="0.35" filter="url(#soft)"/>
+  </g>
+
+  <!-- Gold frame on top -->
+  <rect x="14" y="14" width="484" height="484" rx="60" fill="none" stroke="url(#gold)" stroke-width="16"/>
+  <rect x="26" y="26" width="460" height="460" rx="50" fill="none" stroke="#000" stroke-width="3" opacity="0.6"/>
+</svg>

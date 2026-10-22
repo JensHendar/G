@@ -2,7 +2,8 @@
 ## Title: Soulbound Chronicle
 ## Notes: Your gear gets names worth remembering, earned through your deeds or chosen by you. Every item remembers its story, and your adventure is written down as you play.
 ## Author: Jens Hendar
-## Version: 0.5.0
+## IconTexture: Interface\AddOns\SoulboundChronicle\Media\Icon
+## Version: 0.5.1
 ## SavedVariables: SoulboundChronicleDB
 ## SavedVariablesPerCharacter: SoulboundChronicleCharDB
 
