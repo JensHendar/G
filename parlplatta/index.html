@@ -1,4 +1,4 @@
-<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>Pärlverkstaden</title>
+<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="logo.svg" type="image/svg+xml"></head><body><title>Plattifiera</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;500;600&display=swap">
@@ -37,8 +37,17 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-bottom: 24px; }
 h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
-.beads { display: inline-flex; gap: 4px; margin-left: 10px; vertical-align: middle; }
-.beads i { width: 14px; height: 14px; border-radius: 50%; display: block; background: radial-gradient(circle, var(--bg) 0 28%, transparent 30%), var(--c); }
+.brand { display: flex; align-items: center; gap: 14px; }
+.mark { width: clamp(72px, 11vw, 96px); height: auto; flex: none; overflow: visible; }
+.mark .tilt { transform: rotate(-6deg); transform-origin: 45px 45px; transition: transform .35s cubic-bezier(.3,1.6,.5,1); }
+.mark .loose { transition: transform .35s cubic-bezier(.3,1.6,.5,1); transform-origin: 93px 84px; }
+.brand:hover .mark .tilt { transform: rotate(3deg); }
+.brand:hover .mark .loose { transform: translate(-4px, -9px) rotate(-40deg); }
+.wordmark { font-size: clamp(36px, 6vw, 54px); letter-spacing: -.015em; }
+.wordmark .i { position: relative; display: inline-block; }
+.wordmark .i::before { content: ""; position: absolute; left: 50%; top: .1em; width: .27em; height: .27em; transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(circle, var(--bg) 0 27%, transparent 30%), var(--c); }
+.wordmark .tld { color: var(--accent); font-weight: 500; font-size: .5em; margin-left: .06em; }
 .lede { color: var(--muted); margin: 6px 0 0; max-width: 56ch; }
 .layout { display: grid; grid-template-columns: minmax(0, 370px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } }
@@ -96,7 +105,10 @@ h3 { font-family: var(--font-display); font-weight: 500; font-size: 18px; margin
 <div class="wrap">
   <header>
     <div>
-      <h1>Pärlverkstaden<span class="beads" aria-hidden="true"><i style="--c:#C8282E"></i><i style="--c:#F2C200"></i><i style="--c:#3D86CF"></i><i style="--c:#5DBB63"></i></span></h1>
+      <div class="brand">
+        <svg class="mark" viewBox="-2 -2 104 98" role="img" aria-label="Plattifiera logga"><g class="tilt"><rect x="0" y="0" width="90" height="90" rx="16" fill="var(--board)"/><circle cx="5" cy="5" r="1.1" fill="var(--peg)"/><circle cx="15" cy="5" r="1.1" fill="var(--peg)"/><circle cx="25" cy="5" r="1.1" fill="var(--peg)"/><circle cx="35" cy="5" r="1.1" fill="var(--peg)"/><circle cx="45" cy="5" r="1.1" fill="var(--peg)"/><circle cx="55" cy="5" r="1.1" fill="var(--peg)"/><circle cx="65" cy="5" r="1.1" fill="var(--peg)"/><circle cx="75" cy="5" r="1.1" fill="var(--peg)"/><circle cx="85" cy="5" r="1.1" fill="var(--peg)"/><circle cx="5" cy="15" r="1.1" fill="var(--peg)"/><circle cx="15" cy="15" r="1.1" fill="var(--peg)"/><circle cx="25" cy="15" r="4.6" fill="#C8282E"/><circle cx="25" cy="15" r="1.7" fill="var(--board)"/><circle cx="35" cy="15" r="4.6" fill="#C8282E"/><circle cx="35" cy="15" r="1.7" fill="var(--board)"/><circle cx="45" cy="15" r="4.6" fill="#C8282E"/><circle cx="45" cy="15" r="1.7" fill="var(--board)"/><circle cx="55" cy="15" r="4.6" fill="#C8282E"/><circle cx="55" cy="15" r="1.7" fill="var(--board)"/><circle cx="65" cy="15" r="1.1" fill="var(--peg)"/><circle cx="75" cy="15" r="1.1" fill="var(--peg)"/><circle cx="85" cy="15" r="1.1" fill="var(--peg)"/><circle cx="5" cy="25" r="1.1" fill="var(--peg)"/><circle cx="15" cy="25" r="1.1" fill="var(--peg)"/><circle cx="25" cy="25" r="4.6" fill="#EE6A2B"/><circle cx="25" cy="25" r="1.7" fill="var(--board)"/><circle cx="35" cy="25" r="1.1" fill="var(--peg)"/><circle cx="45" cy="25" r="1.1" fill="var(--peg)"/><circle cx="55" cy="25" r="1.1" fill="var(--peg)"/><circle cx="65" cy="25" r="4.6" fill="#EE6A2B"/><circle cx="65" cy="25" r="1.7" fill="var(--board)"/><circle cx="75" cy="25" r="1.1" fill="var(--peg)"/><circle cx="85" cy="25" r="1.1" fill="var(--peg)"/><circle cx="5" cy="35" r="1.1" fill="var(--peg)"/><circle cx="15" cy="35" r="1.1" fill="var(--peg)"/><circle cx="25" cy="35" r="4.6" fill="#F2C200"/><circle cx="25" cy="35" r="1.7" fill="var(--board)"/><circle cx="35" cy="35" r="1.1" fill="var(--peg)"/><circle cx="45" cy="35" r="1.1" fill="var(--peg)"/><circle cx="55" cy="35" r="1.1" fill="var(--peg)"/><circle cx="65" cy="35" r="4.6" fill="#F2C200"/><circle cx="65" cy="35" r="1.7" fill="var(--board)"/><circle cx="75" cy="35" r="1.1" fill="var(--peg)"/><circle cx="85" cy="35" r="1.1" fill="var(--peg)"/><circle cx="5" cy="45" r="1.1" fill="var(--peg)"/><circle cx="15" cy="45" r="1.1" fill="var(--peg)"/><circle cx="25" cy="45" r="4.6" fill="#5DBB63"/><circle cx="25" cy="45" r="1.7" fill="var(--board)"/><circle cx="35" cy="45" r="4.6" fill="#5DBB63"/><circle cx="35" cy="45" r="1.7" fill="var(--board)"/><circle cx="45" cy="45" r="4.6" fill="#5DBB63"/><circle cx="45" cy="45" r="1.7" fill="var(--board)"/><circle cx="55" cy="45" r="4.6" fill="#5DBB63"/><circle cx="55" cy="45" r="1.7" fill="var(--board)"/><circle cx="65" cy="45" r="1.1" fill="var(--peg)"/><circle cx="75" cy="45" r="1.1" fill="var(--peg)"/><circle cx="85" cy="45" r="1.1" fill="var(--peg)"/><circle cx="5" cy="55" r="1.1" fill="var(--peg)"/><circle cx="15" cy="55" r="1.1" fill="var(--peg)"/><circle cx="25" cy="55" r="4.6" fill="#3FAFC0"/><circle cx="25" cy="55" r="1.7" fill="var(--board)"/><circle cx="35" cy="55" r="1.1" fill="var(--peg)"/><circle cx="45" cy="55" r="1.1" fill="var(--peg)"/><circle cx="55" cy="55" r="1.1" fill="var(--peg)"/><circle cx="65" cy="55" r="1.1" fill="var(--peg)"/><circle cx="75" cy="55" r="1.1" fill="var(--peg)"/><circle cx="85" cy="55" r="1.1" fill="var(--peg)"/><circle cx="5" cy="65" r="1.1" fill="var(--peg)"/><circle cx="15" cy="65" r="1.1" fill="var(--peg)"/><circle cx="25" cy="65" r="4.6" fill="#2B4EA2"/><circle cx="25" cy="65" r="1.7" fill="var(--board)"/><circle cx="35" cy="65" r="1.1" fill="var(--peg)"/><circle cx="45" cy="65" r="1.1" fill="var(--peg)"/><circle cx="55" cy="65" r="1.1" fill="var(--peg)"/><circle cx="65" cy="65" r="1.1" fill="var(--peg)"/><circle cx="75" cy="65" r="1.1" fill="var(--peg)"/><circle cx="85" cy="65" r="1.1" fill="var(--peg)"/><circle cx="5" cy="75" r="1.1" fill="var(--peg)"/><circle cx="15" cy="75" r="1.1" fill="var(--peg)"/><circle cx="25" cy="75" r="4.6" fill="#6E4C9A"/><circle cx="25" cy="75" r="1.7" fill="var(--board)"/><circle cx="35" cy="75" r="1.1" fill="var(--peg)"/><circle cx="45" cy="75" r="1.1" fill="var(--peg)"/><circle cx="55" cy="75" r="1.1" fill="var(--peg)"/><circle cx="65" cy="75" r="1.1" fill="var(--peg)"/><circle cx="75" cy="75" r="1.1" fill="var(--peg)"/><circle cx="85" cy="75" r="1.1" fill="var(--peg)"/><circle cx="5" cy="85" r="1.1" fill="var(--peg)"/><circle cx="15" cy="85" r="1.1" fill="var(--peg)"/><circle cx="25" cy="85" r="1.1" fill="var(--peg)"/><circle cx="35" cy="85" r="1.1" fill="var(--peg)"/><circle cx="45" cy="85" r="1.1" fill="var(--peg)"/><circle cx="55" cy="85" r="1.1" fill="var(--peg)"/><circle cx="65" cy="85" r="1.1" fill="var(--peg)"/><circle cx="75" cy="85" r="1.1" fill="var(--peg)"/><circle cx="85" cy="85" r="1.1" fill="var(--peg)"/><g class="loose"><circle cx="93" cy="84" r="5.6" fill="#EE95B4"/><ellipse cx="93.6" cy="83.4" rx="1.6" ry="2.2" transform="rotate(-25 93.6 83.4)" fill="var(--board)"/></g></g></svg>
+        <h1 class="wordmark">Platt<span class="i" style="--c:#EE6A2B">ı</span>f<span class="i" style="--c:#3D86CF">ı</span>era<span class="tld">.se</span></h1>
+      </div>
       <p class="lede">Beskriv ett motiv eller ladda upp en bild, så får du ett färdigt mönster för pärlplattan med lista över hur många pärlor du behöver av varje färg.</p>
     </div>
   </header>
@@ -444,7 +456,7 @@ async function exportPng(){
   x.fillStyle="#FFFFFF"; x.fillRect(0,0,W,H);
   x.fillStyle="#1D2331"; x.font="600 22px Fredoka, Figtree, sans-serif"; x.textBaseline="top"; x.fillText($("#title").textContent, pad, pad);
   x.font="14px Figtree, sans-serif"; x.fillStyle="#5C6578"; x.textAlign="right";
-  x.fillText(`${N} × ${N} · ${list.reduce((a,e)=>a+e[1],0)} pärlor`, W-pad, pad+6); x.textAlign="left";
+  x.fillText(`plattifiera.se · ${N} × ${N} · ${list.reduce((a,e)=>a+e[1],0)} pärlor`, W-pad, pad+6); x.textAlign="left";
   x.save(); x.translate(pad+(W-pad*2-s*N)/2, pad+40);
   paintBoard(x, s, {board:"#EEF1F6", peg:"#C9D1DE", guide:"rgba(43,84,214,.25)", plate:"#2B54D6", symbols:true}); x.restore();
   const top=pad+40+s*N+24, cw=(W-pad*2)/cols;
@@ -453,7 +465,7 @@ async function exportPng(){
     x.fillStyle="#1D2331"; x.font="600 14px Figtree, sans-serif"; x.textBaseline="middle"; x.fillText(`${p.key}`, cx+26, cy+10);
     x.font="14px Figtree, sans-serif"; x.fillText(`${p.n} ${p.name}`, cx+44, cy+10); x.textAlign="right"; x.font="600 14px Figtree, sans-serif"; x.fillText(String(n), cx+cw-14, cy+10); x.textAlign="left"; });
   const blob=await new Promise(r=>c.toBlob(r,"image/png"));
-  const filename=($("#title").textContent||"parlmonster").toLowerCase().replace(/[^a-z0-9åäö]+/g,"-").replace(/^-|-$/g,"")+".png";
+  const filename=($("#title").textContent||"plattifiera").toLowerCase().replace(/[^a-z0-9åäö]+/g,"-").replace(/^-|-$/g,"")+".png";
   const dl=await downloadsP;
   if(dl){ try{ await dl.save({filename, data:blob}); setStatus("Bilden är sparad."); }catch(e){ if(e?.code!=="dismissed") setStatus("Bilden kunde inte sparas här.", true); } return; }
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
