@@ -28,3 +28,7 @@ Plain HTML, CSS and JavaScript with no build step. Open `index.html` in a browse
 - Name your realm, sound effects with a mute toggle, offline earnings (50%, up to 8 hours), autosave to `localStorage`.
 
 Saves from the earlier multi-theme version's Medieval Kingdom are migrated automatically.
+
+## Pärlverkstaden
+
+`parlplatta/index.html` är en fristående sida som gör pärlplattemönster. Du kan beskriva ett motiv eller ladda upp en bild. Bilden skalas ner till plattans storlek och färgerna byts mot närmaste pärlfärger. Sidan visar också en inköpslista och låter dig måla om pärlor för hand. Utanför Claude blir beskrivningar en snabbskiss från en emoji.
